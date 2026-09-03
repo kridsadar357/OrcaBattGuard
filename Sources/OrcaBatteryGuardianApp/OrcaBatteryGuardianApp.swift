@@ -1,0 +1,35 @@
+import AppKit
+import OrcaBatteryGuardian
+import SwiftUI
+
+@main
+struct OrcaBatteryGuardianApp: App {
+    @StateObject private var engine = GuardianEngine()
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Scene {
+        Window("Orca Battery Guardian", id: "main") {
+            ContentView(engine: engine)
+                .onAppear {
+                    NSApp.setActivationPolicy(.accessory)
+                    engine.start()
+                }
+        }
+        .windowResizability(.contentSize)
+
+        MenuBarExtra {
+            MenuBarContentView(
+                engine: engine,
+                onOpen: {
+                    openWindow(id: "main")
+                    NSApp.activate(ignoringOtherApps: true)
+                },
+                onRefresh: { engine.refresh() },
+                onQuit: { NSApp.terminate(nil) }
+            )
+        } label: {
+            MenuBarLabelView(percentage: engine.snapshot.percentage)
+        }
+        .menuBarExtraStyle(.window)
+    }
+}

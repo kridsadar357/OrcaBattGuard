@@ -8,13 +8,20 @@ struct OrcaBatteryGuardianApp: App {
     @StateObject private var engine = GuardianEngine()
     @Environment(\.openWindow) private var openWindow
 
+    init() {
+        BundledFontRegistrar.registerSarabun()
+    }
+
     var body: some Scene {
         Window("Orca Battery Guardian", id: "main") {
             ContentView(engine: engine)
                 .onAppear {
                     NSApp.setActivationPolicy(.accessory)
                     appDelegate.engine = engine
-                    engine.start()
+                    Task { @MainActor in
+                        await Task.yield()
+                        engine.start()
+                    }
                 }
         }
         .windowResizability(.contentSize)
@@ -33,7 +40,10 @@ struct OrcaBatteryGuardianApp: App {
             MenuBarLabelView(percentage: engine.snapshot.percentage)
                 .onAppear {
                     appDelegate.engine = engine
-                    engine.start()
+                    Task { @MainActor in
+                        await Task.yield()
+                        engine.start()
+                    }
                 }
         }
         .menuBarExtraStyle(.window)

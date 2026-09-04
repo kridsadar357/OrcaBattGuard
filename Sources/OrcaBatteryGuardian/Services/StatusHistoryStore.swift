@@ -80,3 +80,28 @@ public actor StatusHistoryStore: StatusHistoryStoring {
         }
     }
 }
+
+public enum StatusHistoryExporter {
+    public static func csv(_ events: [StatusEvent]) -> String {
+        let formatter = ISO8601DateFormatter()
+        var rows = ["timestamp,title,detail"]
+        rows += events.sorted { $0.date > $1.date }.map { event in
+            [formatter.string(from: event.date), event.title, event.detail]
+                .map(escapeCSV)
+                .joined(separator: ",")
+        }
+        return rows.joined(separator: "\n") + "\n"
+    }
+
+    public static func json(_ events: [StatusEvent]) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(events.sorted { $0.date > $1.date })
+    }
+
+    private static func escapeCSV(_ value: String) -> String {
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        return "\"\(escaped)\""
+    }
+}

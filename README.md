@@ -8,7 +8,7 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 
 ตัวแอปเขียนด้วย Swift และ SwiftUI แสดงเปอร์เซ็นต์แบต แหล่งจ่ายไฟ อุณหภูมิ สุขภาพแบต และจำนวนรอบชาร์จเท่าที่ macOS อ่านได้ พร้อมตั้งช่วงชาร์จที่ต้องการจากหน้าเดียว
 
-**เวอร์ชัน 0.4.0 (Beta) · macOS 13 ขึ้นไป · รองรับ Apple Silicon เป็นหลัก**
+**เวอร์ชัน 0.7.0 (Beta) · macOS 13 ขึ้นไป · รองรับ Apple Silicon เป็นหลัก**
 
 > การจำกัดการชาร์จจริงใช้ [batt](https://github.com/charlie0129/batt) ซึ่งต้องติดตั้งแยก หากไม่มี `batt` แอปยังดูข้อมูลแบตได้ แต่จะไม่สามารถเปลี่ยน charge limit ให้เครื่อง
 
@@ -46,6 +46,12 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 - มี Simulation Mode สำหรับลองหน้าจอและ state machine โดยไม่ส่งคำสั่งไปที่ฮาร์ดแวร์
 - สั่งชาร์จถึง 100% ชั่วคราว 1, 2 หรือ 4 ชั่วโมง แล้วกลับไปใช้โหมดเดิมเอง
 - ตรวจ `batt`, daemon, charge limit และความเข้ากันได้จากหน้า Diagnostics
+- เก็บ Battery Benchmark แบบรายวัน พร้อมตาราง 7/30/90 วัน กราฟ capacity และ Export CSV
+- สลับภาษาไทยและ English ได้ทันทีจากหน้า Settings โดยภาษาไทยใช้ฟอนต์ Sarabun
+- ส่งออก Activity เป็น CSV หรือ JSON สำหรับตรวจย้อนหลัง
+- ตรวจหาเวอร์ชันใหม่จาก GitHub Releases โดยไม่ดาวน์โหลดหรือรันไฟล์อัตโนมัติ
+- ดูและควบคุมขั้นตอน Battery Calibration ผ่าน `batt` โดยอ่านสถานะกลับหลังทุกคำสั่ง
+- มี `orca` CLI สำหรับอ่าน status, diagnostics, history และ benchmark จาก Terminal (`orca-battery` ยังใช้เป็น alias ได้)
 
 ## โหมดการชาร์จ
 
@@ -55,6 +61,12 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 | Balanced | 50% | 80% | ใช้งานทั่วไป และเป็นค่าเริ่มต้นของแอป |
 | Travel | 20% | 100% | วันที่ต้องการแบตเต็มก่อนออกไปข้างนอก |
 | Custom | กำหนดเอง | กำหนดเอง | คนที่ต้องการตั้งช่วงให้เข้ากับการใช้งานของตัวเอง |
+
+## ภาษา
+
+เลือก `ไทย` หรือ `English` ได้จากหน้า Settings แอปจะจำภาษาที่เลือกไว้ หากยังไม่เคยเลือก Orca จะใช้ภาษาไทยเมื่อภาษาหลักของ macOS เป็นภาษาไทย และใช้ English ในกรณีอื่น
+
+ข้อความบน Dashboard, Menu Bar, สถานะแบตเตอรี่, Diagnostics และการแจ้งเตือนรองรับทั้งสองภาษา ภาษาไทยใช้ [Sarabun](https://fonts.google.com/specimen/Sarabun) ซึ่งรวมมากับแอปภายใต้ SIL Open Font License ส่วนชื่อคำสั่งและหน่วยทางเทคนิคบางรายการ เช่น `batt`, CSV และ mAh จะคงรูปเดิมเพื่อให้ตรวจสอบได้ง่าย
 
 ในโหมด Custom ค่าเริ่มและหยุดต้องห่างกันอย่างน้อย 5% ส่วน Travel จะปิด charge limit แล้วปล่อยให้ macOS จัดการการชาร์จตามปกติ ไม่ได้บังคับให้แบตวิ่งระหว่าง 20-100%
 
@@ -148,6 +160,124 @@ Activity เก็บเหตุการณ์สำคัญ เช่น ก
 
 แอปเก็บไม่เกิน 500 รายการหรือ 512 KiB โดยลบรายการเก่าที่สุดก่อน ไฟล์นี้อยู่ในเครื่องเท่านั้นและไม่ได้ถูกส่งออกไปที่ไหน หากอ่านหรือเขียนไฟล์ไม่ได้ จะมีคำเตือนในหน้า Activity แทนการเขียนทับไฟล์เดิมเงียบ ๆ
 
+กดเมนูมุมขวาบนของหน้า Activity เพื่อส่งออกเป็น CSV หรือ JSON ได้ ไฟล์ส่งออกมีเวลา หัวข้อ และรายละเอียดของแต่ละเหตุการณ์ โดยแอปจะไม่ส่งไฟล์ออกจากเครื่องเอง
+
+## Calibration
+
+หน้า Settings แสดงสถานะ Calibration ที่อ่านจาก `batt` และรองรับ Start, Pause, Resume และ Cancel เฉพาะเมื่อ daemon รายงานว่าใช้คำสั่งนั้นได้ การเริ่ม Calibration ต้องยืนยันอีกครั้ง เพราะกระบวนการจะคายประจุ ชาร์จเต็ม และอาจใช้เวลาหลายชั่วโมง
+
+ระหว่าง Calibration ตัว state machine ของ Orca จะไม่เขียนทับค่าที่ `batt` กำลังจัดการ ควรเสียบ Adapter เปิดฝาเครื่อง และป้องกันไม่ให้เครื่อง sleep จนกว่ากระบวนการจะเสร็จ ไม่ควรทำ Calibration บ่อยหากไม่มีเหตุผล เพราะเป็นการเพิ่มรอบใช้งานแบตเตอรี่โดยตั้งใจ
+
+## Updates
+
+Orca ตรวจ GitHub Releases ได้ไม่เกินวันละครั้งเมื่อเปิดการตรวจอัตโนมัติ หรือกด `Check Now` ใน Settings การตรวจนี้ส่งเพียง HTTP request ปกติไปยัง GitHub และไม่มี telemetry ของโปรเจกต์ หากมีรุ่นใหม่ แอปจะเปิดหน้า Release ให้ผู้ใช้ตรวจและดาวน์โหลดเอง
+
+## Command Line Interface (CLI)
+
+ตัวแอปมี CLI แบบ read-only ชื่อ `orca` คำสั่งนี้ใช้ดูสถานะ ตรวจ diagnostics และ export ข้อมูลได้จาก Terminal โดยไม่ต้องเปิด Dashboard ส่วนชื่อเดิม `orca-battery` ยังเป็น alias เพื่อให้สคริปต์ที่มีอยู่ใช้งานต่อได้
+
+### ติดตั้ง CLI
+
+หลังติดตั้ง Orca ไว้ใน `/Applications` แล้ว ให้รันจากโฟลเดอร์โปรเจกต์:
+
+```sh
+./Scripts/install-cli.sh
+```
+
+สคริปต์จะคัดลอก CLI จากตัวแอปไปที่ `~/.local/bin/orca` และสร้าง alias `orca-battery` โดยไม่ต้องใช้สิทธิ์ผู้ดูแล ตรวจผลหลังติดตั้งได้ด้วย:
+
+```sh
+command -v orca
+orca version
+orca diagnostics
+```
+
+หาก `~/.local/bin` ไม่อยู่ใน `PATH` ให้เพิ่มบรรทัดนี้ใน `~/.zshrc` แล้วเปิด Terminal ใหม่:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+ไฟล์ที่ติดตั้งเป็นสำเนาของ CLI ใน app bundle หลังอัปเดต Orca ควรรัน `./Scripts/install-cli.sh` อีกครั้งเพื่อให้ CLI เป็นเวอร์ชันเดียวกับแอป
+
+หากต้องการติดตั้งให้ผู้ใช้ทุกบัญชีในเครื่องเรียกได้ ให้ใช้โหมด system ซึ่งจะถามรหัสผ่าน `sudo`:
+
+```sh
+./Scripts/install-cli.sh --system
+```
+
+โหมดนี้ติดตั้ง `orca` และ alias `orca-battery` ที่ `/usr/local/bin`
+
+### ติดตั้งผ่าน Homebrew
+
+โปรเจกต์มี Formula ชื่อ `orca-battery` ซึ่งติดตั้งคำสั่ง `orca` และ alias เดิม ปัจจุบัน repo ยังไม่มี release tag จึงติดตั้งจาก branch `main` ด้วย `--HEAD` ก่อน:
+
+```sh
+brew tap kridsadar357/orca-batt-guard https://github.com/kridsadar357/OrcaBattGuard.git
+brew install --HEAD kridsadar357/orca-batt-guard/orca-battery
+```
+
+วิธีนี้ build CLI จาก source และต้องมี Xcode 16 หรือใหม่กว่า เมื่อมี release tag แล้ว Formula จะเปลี่ยนไปใช้ archive ที่ระบุ version และ SHA-256 เพื่อให้ `brew install kridsadar357/orca-batt-guard/orca-battery` ทำงานแบบ release ได้ การติดตั้งผ่าน Formula เป็น CLI เท่านั้น ไม่ได้ติดตั้งแอป GUI
+
+### การใช้งาน
+
+```sh
+# สถานะแบตแบบอ่านง่ายหรือ JSON
+orca status
+orca status --json
+
+# ตรวจ battery API, ตำแหน่งแอป, batt daemon และ charge limits
+orca diagnostics
+
+# ดูสถานะ Calibration เท่านั้น คำสั่งนี้ไม่เริ่ม Calibration
+orca calibration
+
+# ส่งออก Activity history
+orca history --format csv --output activity.csv
+orca history --format json --output activity.json
+
+# ส่งออกตาราง Battery Benchmark
+orca benchmark --output benchmark.csv
+
+# ตรวจ GitHub Releases
+orca update
+
+# แสดงเวอร์ชันและรายการคำสั่ง
+orca version
+orca help
+```
+
+พาธใน `--output` เป็นได้ทั้ง relative path และ absolute path หากไม่ใส่ `--output` คำสั่ง export จะแสดงข้อมูลทาง stdout จึงสามารถ pipe ไปยังโปรแกรมอื่นได้ เช่น:
+
+```sh
+orca status --json | jq
+orca history --format csv > activity.csv
+```
+
+CLI คืน exit code ที่ไม่ใช่ศูนย์เมื่อคำสั่งหรือข้อมูลไม่พร้อม จึงใช้ใน shell script และระบบ monitoring ได้ แต่ CLI ไม่เปลี่ยน charge limit, ไม่เริ่ม Calibration และไม่สั่ง force discharge คำสั่งที่เปลี่ยนฮาร์ดแวร์ยังอยู่ใน GUI ซึ่งมี confirmation และตรวจสถานะกลับ
+
+ถอน CLI แบบ user-local โดยไม่กระทบตัวแอปหรือข้อมูล Benchmark/Activity ได้ด้วย:
+
+```sh
+rm ~/.local/bin/orca ~/.local/bin/orca-battery
+```
+
+ถ้าติดตั้งด้วย `--system` ให้ถอนด้วย `sudo rm /usr/local/bin/orca /usr/local/bin/orca-battery`
+
+## Battery Benchmark
+
+หน้า Benchmark เริ่มเก็บ baseline จากข้อมูลแบตครั้งแรกที่แอปอ่านได้ แล้วสรุปเป็นรายวันเพื่อเทียบ Full Charge Capacity, สุขภาพแบตโดยประมาณ, Cycle Count, อุณหภูมิ, เวลาที่อยู่เหนือ 80% และเวลาที่ Battery Protection ทำงาน เลือกดูช่วง 7, 30 หรือ 90 วันได้ และ Export ตารางรายวันเป็น CSV จากเมนูมุมขวาบน
+
+ข้อมูลอยู่ในเครื่องที่:
+
+```text
+~/Library/Application Support/OrcaBatteryGuardian/benchmark.json
+```
+
+ไฟล์เก็บเฉพาะผลรวมรายวันสูงสุด 400 วัน ไม่เก็บรายการดิบทุก 30 วินาที และไม่นับช่วงยาวที่แอปปิดหรือเครื่องหลับเป็นเวลาป้องกัน สามารถเลือก `Reset Baseline` เพื่อเริ่มวัดใหม่ได้ ส่วน Simulation Mode จะไม่ถูกนำมาปนกับข้อมูลจริง
+
+ค่า capacity และ health มาจาก battery controller และอาจขยับขึ้นลงระหว่างวัน จึงควรดูแนวโน้มหลายสัปดาห์แทนการสรุปจากจุดเดียว Benchmark ช่วยให้เห็นการเปลี่ยนแปลง แต่ไม่ได้พิสูจน์ว่า Orca เป็นสาเหตุของการเปลี่ยนแปลงนั้นโดยตรง
+
 ## สำหรับนักพัฒนา
 
 โค้ดแยกส่วนอ่านแบต, state machine, charge controller, process runner และ history store ออกจากกัน เพื่อให้ทดสอบ logic ได้โดยไม่ต้องส่งคำสั่งไปที่แบตจริง และยังสามารถเปลี่ยน backend เป็น privileged helper ของโปรเจกต์เองได้ในอนาคต
@@ -167,16 +297,17 @@ swift test
 swift test -c release
 ```
 
-ตอนนี้มี 64 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, power-source events, Simulation Mode และการบันทึกประวัติ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
+ตอนนี้มี 90 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, power-source events, Simulation Mode, การบันทึกและ export ประวัติ, Battery Benchmark, Calibration, update checker และระบบภาษา/ฟอนต์ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
 
-ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.4.0](docs/verification-0.4.0.md) และยังเปิดดู [รายงานรุ่น 0.3.0](docs/verification-0.3.0.md) ได้
+ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.7.0](docs/verification-0.7.0.md) และยังเปิดดู [รายงานรุ่น 0.6.0](docs/verification-0.6.0.md) ได้
 
 ## ข้อจำกัดตอนนี้
 
 - ยังไม่ได้ทดสอบกับ MacBook และ macOS ครบทุกรุ่น
 - ยังไม่ได้ทดสอบเปิดต่อเนื่องหลายวัน, restart และ sleep/wake หลายรอบ
 - ยังใช้ `batt` เป็น backend ภายนอก ไม่ได้รวมตัวควบคุมมากับแอป
-- ยังไม่มี automatic update, export history และกราฟย้อนหลัง
+- ระบบอัปเดตทำหน้าที่ตรวจเวอร์ชันและเปิดหน้า Release เท่านั้น ยังไม่ดาวน์โหลดหรือติดตั้งรุ่นใหม่ให้อัตโนมัติ
+- Calibration ต้องพึ่งความสามารถของ `batt` และเป็นงานที่เพิ่มรอบชาร์จ จึงควรใช้เฉพาะเวลาที่ค่าประเมินแบตผิดปกติ ไม่ใช่งานประจำ
 - Cooling Pause เป็น policy ของแอป ไม่ใช่ระบบรับรองความปลอดภัยด้านอุณหภูมิ
 
 Orca ยังเป็น Beta ผมแนะนำให้เปิดดูสถานะเป็นระยะ โดยเฉพาะช่วงแรกที่ลองกับ Mac รุ่นใหม่ แอปช่วยจัดช่วงชาร์จได้ แต่ไม่ได้ซ่อมแบตที่เสื่อมแล้วและไม่สามารถรับประกันอายุแบตได้

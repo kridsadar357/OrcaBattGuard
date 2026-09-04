@@ -22,7 +22,9 @@ public final class IOKitBatteryDataProvider: BatteryDataProviding {
                 isFullyCharged: false,
                 temperatureC: readSmartBatteryTemperature(),
                 cycleCount: readSmartBatteryInt("CycleCount"),
-                health: readSmartBatteryString("BatteryHealth")
+                health: readSmartBatteryString("BatteryHealth"),
+                fullChargeCapacityMah: readFullChargeCapacity(),
+                designCapacityMah: readSmartBatteryInt("DesignCapacity")
             )
         }
 
@@ -39,8 +41,14 @@ public final class IOKitBatteryDataProvider: BatteryDataProviding {
             isFullyCharged: description[kIOPSIsChargedKey] as? Bool ?? false,
             temperatureC: readSmartBatteryTemperature(),
             cycleCount: readSmartBatteryInt("CycleCount"),
-            health: (description[kIOPSBatteryHealthKey] as? String) ?? readSmartBatteryString("BatteryHealth")
+            health: (description[kIOPSBatteryHealthKey] as? String) ?? readSmartBatteryString("BatteryHealth"),
+            fullChargeCapacityMah: readFullChargeCapacity(),
+            designCapacityMah: readSmartBatteryInt("DesignCapacity")
         )
+    }
+
+    private func readFullChargeCapacity() -> Int? {
+        readSmartBatteryInt("AppleRawMaxCapacity") ?? readSmartBatteryInt("NominalChargeCapacity")
     }
 
     private func readSmartBatteryTemperature() -> Double? {
@@ -82,7 +90,9 @@ public final class MockBatteryDataProvider: BatteryDataProviding {
             isFullyCharged: false,
             temperatureC: 32,
             cycleCount: 218,
-            health: "Good"
+            health: "Good",
+            fullChargeCapacityMah: 7_850,
+            designCapacityMah: 8_600
         )
     }
 

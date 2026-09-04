@@ -9,10 +9,15 @@ struct BattStatus: Decodable, Sendable {
 
     struct Compatibility: Decodable, Sendable {
         let chargingControl: Bool
+        let calibration: Bool?
     }
 
     struct Calibration: Decodable, Sendable {
         let phase: String
+        let paused: Bool?
+        let canPause: Bool?
+        let canCancel: Bool?
+        let message: String?
     }
 
     let configuration: Configuration

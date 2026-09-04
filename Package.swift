@@ -4,11 +4,13 @@ import PackageDescription
 
 let package = Package(
     name: "OrcaBatteryGuardian",
+    defaultLocalization: "en",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(name: "OrcaBatteryGuardian", targets: ["OrcaBatteryGuardianApp"]),
+        .executable(name: "orca-battery", targets: ["OrcaBatteryGuardianCLI"]),
         .library(name: "OrcaBatteryGuardianCore", targets: ["OrcaBatteryGuardian"])
     ],
     targets: [
@@ -26,6 +28,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "OrcaBatteryGuardianApp",
+            dependencies: ["OrcaBatteryGuardian"]
+        ),
+        .executableTarget(
+            name: "OrcaBatteryGuardianCLI",
             dependencies: ["OrcaBatteryGuardian"]
         ),
         .testTarget(

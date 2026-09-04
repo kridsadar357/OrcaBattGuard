@@ -4,6 +4,10 @@ public enum PowerSource: String, CaseIterable, Sendable {
     case acPower = "AC Power"
     case battery = "Battery"
     case unknown = "Unknown"
+
+    public func title(language: AppLanguage) -> String {
+        L10n.string(rawValue, language: language)
+    }
 }
 
 public enum ChargingState: String, CaseIterable, Sendable {
@@ -13,6 +17,10 @@ public enum ChargingState: String, CaseIterable, Sendable {
     case coolingPause = "Cooling Pause"
     case safetyCharge = "Safety Charge"
     case unknown = "Unknown"
+
+    public func title(language: AppLanguage) -> String {
+        L10n.string(rawValue, language: language)
+    }
 }
 
 public enum GuardianMode: String, CaseIterable, Identifiable, Sendable {
@@ -32,6 +40,10 @@ public enum GuardianMode: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    public func title(language: AppLanguage) -> String {
+        L10n.string(title, language: language)
+    }
+
     public var subtitle: String {
         switch self {
         case .maximumLife: "50-70%"
@@ -39,6 +51,10 @@ public enum GuardianMode: String, CaseIterable, Identifiable, Sendable {
         case .travel: "20-100%"
         case .custom: "Manual range"
         }
+    }
+
+    public func subtitle(language: AppLanguage) -> String {
+        L10n.string(subtitle, language: language)
     }
 
     public var thresholds: ChargeThresholds {
@@ -64,6 +80,10 @@ public enum FullChargeDuration: TimeInterval, CaseIterable, Identifiable, Sendab
         case .twoHours: "2 hours"
         case .fourHours: "4 hours"
         }
+    }
+
+    public func title(language: AppLanguage) -> String {
+        L10n.string(title, language: language)
     }
 }
 
@@ -100,6 +120,8 @@ public struct BatterySnapshot: Equatable, Sendable {
     public var temperatureC: Double?
     public var cycleCount: Int?
     public var health: String?
+    public var fullChargeCapacityMah: Int?
+    public var designCapacityMah: Int?
     public var timestamp: Date
 
     public var chargingDescription: String {
@@ -107,6 +129,10 @@ public struct BatterySnapshot: Equatable, Sendable {
         if powerSource == .battery { return "Discharging" }
         if isCharging { return "Charging" }
         return isFullyCharged ? "Full" : "Not Charging"
+    }
+
+    public func chargingDescription(language: AppLanguage) -> String {
+        L10n.string(chargingDescription, language: language)
     }
 
     public init(
@@ -117,6 +143,8 @@ public struct BatterySnapshot: Equatable, Sendable {
         temperatureC: Double?,
         cycleCount: Int?,
         health: String?,
+        fullChargeCapacityMah: Int? = nil,
+        designCapacityMah: Int? = nil,
         timestamp: Date = Date()
     ) {
         self.percentage = percentage
@@ -126,7 +154,16 @@ public struct BatterySnapshot: Equatable, Sendable {
         self.temperatureC = temperatureC
         self.cycleCount = cycleCount
         self.health = health
+        self.fullChargeCapacityMah = fullChargeCapacityMah
+        self.designCapacityMah = designCapacityMah
         self.timestamp = timestamp
+    }
+
+    public var estimatedHealthPercentage: Double? {
+        BatteryBenchmarkBaseline.healthPercentage(
+            fullChargeCapacityMah: fullChargeCapacityMah,
+            designCapacityMah: designCapacityMah
+        )
     }
 }
 
@@ -186,6 +223,15 @@ public struct ChargeControlResult: Equatable, Sendable {
         didAttemptHardwareChange: false,
         message: "Checking the charge controller."
     )
+
+    public static func checking(language: AppLanguage) -> ChargeControlResult {
+        ChargeControlResult(
+            backendName: L10n.string("Checking", language: language),
+            isHardwareControlAvailable: false,
+            didAttemptHardwareChange: false,
+            message: L10n.string("Checking the charge controller.", language: language)
+        )
+    }
 }
 
 public struct StatusEvent: Identifiable, Equatable, Codable, Sendable {

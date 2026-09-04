@@ -47,6 +47,8 @@ RESOURCE_BUNDLE="$BIN_DIR/OrcaBatteryGuardian_OrcaBatteryGuardian.bundle"
 
 mkdir -p "$CONTENTS_DIR/MacOS" "$RESOURCES_DIR" "$ICONSET_DIR" "$PROJECT_DIR/build"
 cp "$BIN_DIR/OrcaBatteryGuardian" "$CONTENTS_DIR/MacOS/OrcaBatteryGuardian"
+cp "$BIN_DIR/orca-battery" "$CONTENTS_DIR/MacOS/orca-battery"
+chmod 755 "$CONTENTS_DIR/MacOS/orca-battery"
 cp "$PROJECT_DIR/Packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
 ditto "$RESOURCE_BUNDLE" "$RESOURCES_DIR/OrcaBatteryGuardian_OrcaBatteryGuardian.bundle"
 
@@ -64,11 +66,13 @@ iconutil -c icns "$ICONSET_DIR" -o "$RESOURCES_DIR/AppIcon.icns"
 plutil -lint "$CONTENTS_DIR/Info.plist"
 
 if [[ -n "$IDENTITY" ]]; then
+    codesign --force --sign "$IDENTITY" --options runtime --timestamp "$CONTENTS_DIR/MacOS/orca-battery"
     codesign --force --sign "$IDENTITY" --options runtime --timestamp "$STAGED_APP"
     codesign --verify --strict --test-requirement \
         '=anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' \
         "$STAGED_APP"
 else
+    codesign --force --sign - "$CONTENTS_DIR/MacOS/orca-battery"
     codesign --force --sign - "$STAGED_APP"
     print -u2 'LOCAL BUILD: ad-hoc signed, not suitable for public distribution.'
 fi

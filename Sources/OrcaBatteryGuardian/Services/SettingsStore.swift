@@ -3,6 +3,10 @@ import ServiceManagement
 
 @MainActor
 public final class GuardianSettings: ObservableObject {
+    @Published public var language: AppLanguage {
+        didSet { defaults.set(language.rawValue, forKey: Keys.language) }
+    }
+
     @Published public var mode: GuardianMode {
         didSet {
             defaults.set(mode.rawValue, forKey: Keys.mode)
@@ -28,6 +32,18 @@ public final class GuardianSettings: ObservableObject {
 
     @Published public var notificationsEnabled: Bool {
         didSet { defaults.set(notificationsEnabled, forKey: Keys.notificationsEnabled) }
+    }
+
+    @Published public var checksForUpdates: Bool {
+        didSet { defaults.set(checksForUpdates, forKey: Keys.checksForUpdates) }
+    }
+
+    public var lastUpdateCheck: Date? {
+        get { defaults.object(forKey: Keys.lastUpdateCheck) as? Date }
+        set {
+            if let newValue { defaults.set(newValue, forKey: Keys.lastUpdateCheck) }
+            else { defaults.removeObject(forKey: Keys.lastUpdateCheck) }
+        }
     }
 
     @Published public var launchAtLogin: Bool {
@@ -66,6 +82,7 @@ public final class GuardianSettings: ObservableObject {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        language = defaults.string(forKey: Keys.language).flatMap(AppLanguage.init(rawValue:)) ?? .systemDefault
         let savedMode = defaults.string(forKey: Keys.mode).flatMap(GuardianMode.init(rawValue:)) ?? .balanced
         mode = savedMode
         customThresholds = ChargeThresholds(
@@ -77,6 +94,7 @@ public final class GuardianSettings: ObservableObject {
         protectionEnabled = defaults.object(forKey: Keys.protectionEnabled) as? Bool ?? true
         simulationMode = defaults.object(forKey: Keys.simulationMode) as? Bool ?? false
         notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
+        checksForUpdates = defaults.object(forKey: Keys.checksForUpdates) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
         chargeToFullUntil = defaults.object(forKey: Keys.chargeToFullUntil) as? Date
     }
@@ -104,6 +122,7 @@ public final class GuardianSettings: ObservableObject {
     }
 
     private enum Keys {
+        static let language = "guardian.language"
         static let mode = "guardian.mode"
         static let lower = "guardian.lower"
         static let upper = "guardian.upper"
@@ -112,6 +131,8 @@ public final class GuardianSettings: ObservableObject {
         static let protectionEnabled = "guardian.protectionEnabled"
         static let simulationMode = "guardian.simulationMode"
         static let notificationsEnabled = "guardian.notificationsEnabled"
+        static let checksForUpdates = "guardian.checksForUpdates"
+        static let lastUpdateCheck = "guardian.lastUpdateCheck"
         static let launchAtLogin = "guardian.launchAtLogin"
         static let chargeToFullUntil = "guardian.chargeToFullUntil"
     }

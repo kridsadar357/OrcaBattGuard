@@ -6,7 +6,8 @@ let testLimits = ChargeThresholds(lower: 50, upper: 80)
 
 func sampleBattery(_ percent: Int = 65, source: PowerSource = .acPower, charging: Bool = false, temperature: Double = 30) -> BatterySnapshot {
     BatterySnapshot(percentage: percent, powerSource: source, isCharging: charging,
-        isFullyCharged: percent == 100, temperatureC: temperature, cycleCount: 100, health: "Good")
+        isFullyCharged: percent == 100, temperatureC: temperature, cycleCount: 100, health: "Good",
+        fullChargeCapacityMah: 8_000, designCapacityMah: 8_500)
 }
 
 func battJSON(lower: Int = 50, upper: Int = 80, enabled: Bool = true, compatible: Bool = true, phase: String = "Idle") -> CommandResult {
@@ -92,10 +93,71 @@ actor FixedDiagnosticsProvider: DiagnosticsProviding {
     let checks: [DiagnosticCheck]
     private(set) var calls = 0
     init(checks: [DiagnosticCheck]) { self.checks = checks }
-    func run(snapshot: BatterySnapshot) -> [DiagnosticCheck] {
+    func run(snapshot: BatterySnapshot, language: AppLanguage) -> [DiagnosticCheck] {
         calls += 1
         return checks
     }
+}
+
+actor MemoryBenchmarkStore: BatteryBenchmarkStoring {
+    private(set) var observations: [BatteryBenchmarkObservation] = []
+    private(set) var flushes = 0
+    private var currentReport: BatteryBenchmarkReport?
+
+    func record(_ observation: BatteryBenchmarkObservation) -> BatteryBenchmarkReport {
+        observations.append(observation)
+        let report = makeReport(observation)
+        currentReport = report
+        return report
+    }
+
+    func reset(with observation: BatteryBenchmarkObservation) -> BatteryBenchmarkReport {
+        observations = [observation]
+        let report = makeReport(observation)
+        currentReport = report
+        return report
+    }
+
+    func flush(at date: Date) {
+        flushes += 1
+    }
+
+    private func makeReport(_ observation: BatteryBenchmarkObservation) -> BatteryBenchmarkReport {
+        let baseline = currentReport?.baseline ?? BatteryBenchmarkBaseline(
+            date: observation.timestamp,
+            cycleCount: observation.cycleCount,
+            fullChargeCapacityMah: observation.fullChargeCapacityMah,
+            designCapacityMah: observation.designCapacityMah,
+            temperatureC: observation.temperatureC
+        )
+        var day = BatteryBenchmarkDay(date: Calendar.autoupdatingCurrent.startOfDay(for: observation.timestamp))
+        day.observe(observation)
+        return BatteryBenchmarkReport(baseline: baseline, days: [day])
+    }
+}
+
+actor FixedMaintenanceService: MaintenanceServicing {
+    var status: CalibrationStatus
+    var result: MaintenanceResult
+    private(set) var commands: [CalibrationCommand] = []
+
+    init(status: CalibrationStatus = .unavailable, result: MaintenanceResult? = nil) {
+        self.status = status
+        self.result = result ?? MaintenanceResult(succeeded: false, message: status.message, calibration: status)
+    }
+
+    func calibrationStatus() -> CalibrationStatus { status }
+
+    func performCalibration(_ command: CalibrationCommand) -> MaintenanceResult {
+        commands.append(command)
+        status = result.calibration
+        return result
+    }
+}
+
+struct FixedUpdateService: AppUpdateChecking {
+    let result: AppUpdateStatus
+    func check(currentVersion: String) async -> AppUpdateStatus { result }
 }
 
 func verifiedResult() -> ChargeControlResult {
@@ -107,6 +169,8 @@ func verifiedResult() -> ChargeControlResult {
 @MainActor
 func isolatedSettings() -> GuardianSettings {
     let settings = GuardianSettings(defaults: UserDefaults(suiteName: "OrcaTests.\(UUID().uuidString)")!)
+    settings.language = .english
     settings.notificationsEnabled = false
+    settings.checksForUpdates = false
     return settings
 }

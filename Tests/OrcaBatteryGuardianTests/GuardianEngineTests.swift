@@ -69,6 +69,9 @@ private func engine(
     history: any StatusHistoryStoring = MemoryHistory(),
     powerSourceMonitor: any PowerSourceEventMonitoring = TestPowerSourceMonitor(),
     diagnosticsProvider: any DiagnosticsProviding = FixedDiagnosticsProvider(checks: []),
+    benchmarkStore: any BatteryBenchmarkStoring = MemoryBenchmarkStore(),
+    maintenanceService: any MaintenanceServicing = FixedMaintenanceService(),
+    updateService: any AppUpdateChecking = FixedUpdateService(result: AppUpdateStatus(state: .upToDate, currentVersion: "0.7.0")),
     nativeChargeLimitAvailable: Bool = false
 ) -> GuardianEngine {
     GuardianEngine(settings: settings ?? isolatedSettings(),
@@ -76,6 +79,8 @@ private func engine(
         mockProvider: FixedBatteryProvider(value: sampleBattery(42, source: .battery)),
         controller: controller, notifier: SilentNotifier(), historyStore: history,
         powerSourceMonitor: powerSourceMonitor, diagnosticsProvider: diagnosticsProvider,
+        benchmarkStore: benchmarkStore,
+        maintenanceService: maintenanceService, updateService: updateService, currentVersion: "0.7.0",
         nativeChargeLimitAvailable: nativeChargeLimitAvailable)
 }
 
@@ -149,6 +154,48 @@ private func waitUntilIdle(_ subject: GuardianEngine) async {
     await subject.refreshAndWait()
     await subject.refreshAndWait()
     #expect(subject.events.first?.title == "Charge limits restored")
+}
+
+@Test @MainActor func startupRepairIsIdentifiedAsRecovery() async {
+    var repair = verifiedResult()
+    repair.didAttemptHardwareChange = true
+    let subject = engine(controller: RecordingController([repair]))
+    await subject.refreshAndWait()
+    #expect(subject.events.first?.title == "Startup recovery applied")
+}
+
+@Test @MainActor func calibrationCommandIsDelegatedAndRefreshesProtection() async {
+    let running = CalibrationStatus(isAvailable: true, phase: "Discharge", canPause: true, canCancel: true)
+    let maintenance = FixedMaintenanceService(
+        status: CalibrationStatus(isAvailable: true, phase: "Idle"),
+        result: MaintenanceResult(succeeded: true, message: "Calibration command verified.", calibration: running)
+    )
+    let subject = engine(controller: RecordingController(), maintenanceService: maintenance)
+    await subject.performCalibration(.start)
+    await subject.refreshAndWait()
+    #expect(subject.calibrationStatus == running)
+    #expect(await maintenance.commands == [.start])
+    #expect(subject.events.first?.title == "Calibration updated")
+}
+
+@Test @MainActor func automaticUpdateCheckHonorsDailyInterval() async {
+    let settings = isolatedSettings()
+    settings.checksForUpdates = true
+    settings.lastUpdateCheck = Date()
+    let available = AppUpdateStatus(
+        state: .updateAvailable, currentVersion: "0.7.0", latestVersion: "0.8.0",
+        releaseURL: URL(string: "https://example.com/release")
+    )
+    let subject = engine(
+        settings: settings,
+        controller: RecordingController(),
+        updateService: FixedUpdateService(result: available)
+    )
+    await subject.checkForUpdates(force: false)
+    #expect(subject.updateStatus.state == .notChecked)
+    settings.lastUpdateCheck = Date(timeIntervalSinceNow: -(25 * 60 * 60))
+    await subject.checkForUpdates(force: false)
+    #expect(subject.updateStatus.state == .updateAvailable)
 }
 
 @Test @MainActor func engineLoadsEarlierHistoryAndFlushesOnShutdown() async {
@@ -342,4 +389,32 @@ private func waitUntilIdle(_ subject: GuardianEngine) async {
     #expect(subject.diagnosticChecks == [expected])
     #expect(!subject.isRunningDiagnostics)
     #expect(await diagnostics.calls == 1)
+}
+
+@Test @MainActor func liveRefreshRecordsBatteryBenchmark() async {
+    let benchmark = MemoryBenchmarkStore()
+    let subject = engine(controller: RecordingController(), benchmarkStore: benchmark)
+    await subject.refreshAndWait()
+    #expect(await benchmark.observations.count == 1)
+    #expect(subject.benchmarkReport?.baseline.fullChargeCapacityMah == 8_000)
+    #expect(subject.benchmarkError == nil)
+}
+
+@Test @MainActor func simulationDoesNotPolluteBatteryBenchmark() async {
+    let settings = isolatedSettings()
+    settings.simulationMode = true
+    let benchmark = MemoryBenchmarkStore()
+    let subject = engine(settings: settings, controller: RecordingController(), benchmarkStore: benchmark)
+    await subject.refreshAndWait()
+    #expect(await benchmark.observations.isEmpty)
+    #expect(subject.benchmarkReport == nil)
+}
+
+@Test @MainActor func resettingBenchmarkUsesCurrentLiveReading() async {
+    let benchmark = MemoryBenchmarkStore()
+    let subject = engine(controller: RecordingController(), benchmarkStore: benchmark)
+    await subject.refreshAndWait()
+    await subject.resetBenchmark()
+    #expect(await benchmark.observations.count == 1)
+    #expect(subject.benchmarkReport?.baseline.cycleCount == 100)
 }

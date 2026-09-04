@@ -29,7 +29,7 @@ import Testing
     #expect(await runner.calls.isEmpty)
 }
 
-@Test func intelDiagnosticsReportsSupportedMonitoringWithoutBackendFailure() async {
+@Test func intelDiagnosticsBlocksUnsupportedOSWithoutCommands() async {
     let runner = ScriptedRunner([])
     let checks = await SystemDiagnosticsService(
         runner: runner,
@@ -41,8 +41,37 @@ import Testing
 
     #expect(checks.first(where: { $0.id == "architecture" })?.level == .information)
     #expect(checks.first(where: { $0.id == "native-limit" })?.level == .passed)
-    #expect(checks.first(where: { $0.id == "batt" })?.level == .information)
+    #expect(checks.first(where: { $0.id == "intel-controller" })?.level == .failed)
     #expect(await runner.calls.isEmpty)
+}
+
+@Test func intelDiagnosticsRequiresHelperOnSupportedOS() async {
+    let runner = ScriptedRunner([])
+    let checks = await SystemDiagnosticsService(
+        runner: runner,
+        battPath: nil,
+        operatingSystemVersion: OperatingSystemVersion(majorVersion: 14, minorVersion: 7, patchVersion: 0),
+        architecture: .intel,
+        intelHelperPath: nil
+    ).run(snapshot: sampleBattery())
+
+    #expect(checks.first(where: { $0.id == "intel-controller" })?.level == .warning)
+    #expect(await runner.calls.isEmpty)
+}
+
+@Test func intelDiagnosticsVerifiesBCLMReadback() async {
+    let runner = ScriptedRunner([CommandResult(exitCode: 0, output: "77\n")])
+    let checks = await SystemDiagnosticsService(
+        runner: runner,
+        battPath: nil,
+        operatingSystemVersion: OperatingSystemVersion(majorVersion: 14, minorVersion: 7, patchVersion: 0),
+        architecture: .intel,
+        intelHelperPath: "/test/intel-helper"
+    ).run(snapshot: sampleBattery())
+
+    #expect(checks.first(where: { $0.id == "architecture" })?.level == .passed)
+    #expect(checks.first(where: { $0.id == "intel-controller" })?.level == .passed)
+    #expect(await runner.calls.first?.arguments == ["read"])
 }
 
 @Test(arguments: [

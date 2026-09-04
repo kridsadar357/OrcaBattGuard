@@ -50,7 +50,7 @@ public final class GuardianEngine: ObservableObject {
         settings: GuardianSettings = GuardianSettings(),
         realProvider: BatteryDataProviding = IOKitBatteryDataProvider(),
         mockProvider: BatteryDataProviding = MockBatteryDataProvider(),
-        controller: any ChargeControlling = SystemChargeController(),
+        controller: any ChargeControlling = PlatformChargeController(),
         simulationController: any ChargeControlling = SafeNoOpChargeController(),
         notifier: GuardianNotifying = UserNotificationService(),
         historyStore: any StatusHistoryStoring = StatusHistoryStore(),
@@ -59,7 +59,7 @@ public final class GuardianEngine: ObservableObject {
         benchmarkStore: any BatteryBenchmarkStoring = BatteryBenchmarkStore(),
         maintenanceService: any MaintenanceServicing = BattMaintenanceService(),
         updateService: any AppUpdateChecking = GitHubUpdateService(),
-        currentVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0",
+        currentVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.9.0",
         coolingPolicy: CoolingPolicy = CoolingPolicy(),
         nativeChargeLimitAvailable: Bool = NativeChargeLimitSupport.isAvailable
     ) {

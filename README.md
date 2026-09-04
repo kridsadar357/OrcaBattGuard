@@ -8,9 +8,9 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 
 ตัวแอปเขียนด้วย Swift และ SwiftUI แสดงเปอร์เซ็นต์แบต แหล่งจ่ายไฟ อุณหภูมิ สุขภาพแบต และจำนวนรอบชาร์จเท่าที่ macOS อ่านได้ พร้อมตั้งช่วงชาร์จที่ต้องการจากหน้าเดียว
 
-**เวอร์ชัน 0.8.0 (Beta) · macOS 13 ขึ้นไป · Universal 2 สำหรับ Apple Silicon และ Intel x86_64**
+**เวอร์ชัน 0.9.0 (Beta) · macOS 13 ขึ้นไป · Universal 2 สำหรับ Apple Silicon และ Intel x86_64**
 
-> การจำกัดการชาร์จจริงบน Apple Silicon ใช้ [batt](https://github.com/charlie0129/batt) ซึ่งต้องติดตั้งแยก ส่วน Mac รุ่น Intel ทำงานใน Monitoring Mode เพราะ `batt` ไม่รองรับ Intel และ Orca ยังไม่มี Intel charge-control backend ที่ตรวจสอบสถานะกลับได้
+> Apple Silicon ใช้ [batt](https://github.com/charlie0129/batt) ส่วน Intel บน macOS 13/14 ใช้ [bclm](https://github.com/zackelia/bclm) ผ่าน helper ที่ติดตั้งแยก ทั้งสองแบบอ่านค่ากลับก่อนแสดงว่า controller ทำงานสำเร็จ
 
 ## ความเข้ากันได้
 
@@ -22,14 +22,14 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 | Battery Benchmark | รองรับ | รองรับ |
 | `orca` CLI | รองรับ | รองรับ |
 | Simulation Mode | รองรับ | รองรับ |
-| ควบคุมช่วงชาร์จผ่าน `batt` | รองรับเมื่อ daemon ยืนยัน capability | ไม่รองรับ |
+| ควบคุมเพดานชาร์จจริง | `batt` เมื่อ daemon ยืนยัน capability | BCLM บน macOS 13/14 หลังติดตั้ง helper |
 | Calibration ผ่าน `batt` | รองรับเมื่อ daemon ยืนยัน capability | ไม่รองรับ |
 
-Release build เป็น Universal 2 และมีทั้ง `arm64` กับ `x86_64` ใน app bundle เดียว บน Intel แอปจะไม่พยายามเรียก `batt` หรือเสนอ native charge limit แต่ยังเก็บข้อมูลและใช้เครื่องมือวิเคราะห์ได้ตามปกติ
+Release build เป็น Universal 2 และมีทั้ง `arm64` กับ `x86_64` ใน app bundle เดียว บน Intel แอปจะไม่เรียก `batt` หรือเสนอ native charge limit ของ Apple หากเป็น macOS 15 ขึ้นไป Orca จะปิดการเขียน BCLM เพราะระบบบล็อกวิธีนี้และแอปจะไม่ขอให้ปิด SIP
 
 ## หน้าตาแอป
 
-ภาพเหล่านี้มาจากแอปที่รันจริงในเวอร์ชัน 0.2.0 ส่วนเวอร์ชัน 0.3.0 ปรับข้อความสถานะและการตรวจสอบ controller ให้ตรงกับเครื่องมากขึ้น
+ภาพเหล่านี้มาจากแอปที่รันจริง หน้าตาอาจต่างจากรุ่นล่าสุดเล็กน้อยตามข้อมูลแบตและ backend ที่ใช้
 
 <table>
   <tr>
@@ -83,7 +83,7 @@ Release build เป็น Universal 2 และมีทั้ง `arm64` ก�
 
 ข้อความบน Dashboard, Menu Bar, สถานะแบตเตอรี่, Diagnostics และการแจ้งเตือนรองรับทั้งสองภาษา ภาษาไทยใช้ [Sarabun](https://fonts.google.com/specimen/Sarabun) ซึ่งรวมมากับแอปภายใต้ SIL Open Font License ส่วนชื่อคำสั่งและหน่วยทางเทคนิคบางรายการ เช่น `batt`, CSV และ mAh จะคงรูปเดิมเพื่อให้ตรวจสอบได้ง่าย
 
-ในโหมด Custom ค่าเริ่มและหยุดต้องห่างกันอย่างน้อย 5% ส่วน Travel จะปิด charge limit แล้วปล่อยให้ macOS จัดการการชาร์จตามปกติ ไม่ได้บังคับให้แบตวิ่งระหว่าง 20-100%
+ในโหมด Custom ค่าเริ่มและหยุดต้องห่างกันอย่างน้อย 5% ส่วน Travel จะปิด charge limit แล้วปล่อยให้ macOS จัดการการชาร์จตามปกติ ไม่ได้บังคับให้แบตวิ่งระหว่าง 20-100% บน Intel ค่า BCLM ควบคุมได้เฉพาะเพดานบน จุดเริ่มชาร์จจริงจึงเป็นหน้าที่ของ SMC และ macOS
 
 ### ตั้งไว้ 80% แต่ทำไมแบตยังอยู่ 100%
 
@@ -119,9 +119,9 @@ swift run OrcaBatteryGuardian
 
 การรันคำสั่งนี้ยังควบคุมแบตจริงได้หากพบ `batt` ถ้าต้องการลองโดยไม่แตะค่าของเครื่อง ให้เปิด Simulation Mode ก่อน
 
-## เปิดใช้การควบคุมการชาร์จจริง
+## เปิดใช้การควบคุมการชาร์จจริงบน Apple Silicon
 
-ส่วนนี้ใช้กับ Apple Silicon เท่านั้น โปรเจกต์ไม่ได้เขียนค่า SMC โดยตรงและไม่มี privileged helper ของตัวเอง การควบคุม charge limit จึงอาศัย `batt` ที่ติดตั้งแยกต่างหาก
+Orca ไม่เขียนค่า SMC ของ Apple Silicon โดยตรง การควบคุม charge limit จึงอาศัย `batt` ที่ติดตั้งแยกต่างหาก
 
 ```sh
 brew install batt
@@ -151,11 +151,41 @@ batt status --json
 
 การ Quit แอปอย่างเดียวไม่ได้หยุด daemon และไม่ได้ล้างค่าที่ `batt` เก็บไว้ ส่วน Simulation Mode จะไม่เปลี่ยนค่าเดิมของฮาร์ดแวร์
 
+## Intel charge control
+
+Intel MacBook ที่ใช้ macOS 13 หรือ 14 สามารถตั้งเพดานชาร์จจริงผ่านค่า BCLM ใน SMC ได้ Orca ใช้ `bclm` เป็น backend และเรียกผ่าน wrapper ที่รับเฉพาะคำสั่งอ่านค่า หรือเขียนเลข 50-100 เท่านั้น หลังเปลี่ยนค่าแอปจะอ่าน BCLM กลับทุกครั้ง ถ้าค่าไม่ตรงจะรายงานว่า unverified
+
+ติดตั้งบนเครื่อง Intel ด้วยคำสั่งต่อไปนี้:
+
+```sh
+brew tap zackelia/formulae
+brew install bclm
+./Scripts/install-intel-controller.sh
+```
+
+สคริปต์จะขอรหัสผ่านผู้ดูแลเพื่อติดตั้งไฟล์ root-owned ใน `/Library/PrivilegedHelperTools` และกฎ sudo ที่อนุญาตเฉพาะ wrapper ของ Orca จากนั้นเปิดแอปใหม่และรัน Diagnostics ควรเห็น `Verified Intel BCLM upper limit` ก่อนถือว่าควบคุมได้จริง
+
+ข้อจำกัดของ Intel backend:
+
+- รองรับ macOS 13 และ 14 เท่านั้น
+- ควบคุมได้เฉพาะเพดานบน 50-100% ไม่มี lower/resume threshold แยกแบบ `batt`
+- SMC อาจหยุดช้ากว่าค่าที่ตั้งเล็กน้อย จึงอาจเห็นเปอร์เซ็นต์เกินเพดานราว 2-3%
+- ไม่มี force discharge และ Calibration ผ่าน Orca
+- macOS 15 ขึ้นไปบล็อกการเขียน BCLM เว้นแต่ปิด SIP; Orca จะไม่แนะนำหรือทำขั้นตอนนั้น
+
+เมื่อต้องการถอน helper ให้รัน:
+
+```sh
+./Scripts/uninstall-intel-controller.sh
+```
+
+สคริปต์จะคืน BCLM เป็น 100% ก่อนลบ helper เครื่อง Intel จริงยังต้องใช้ตรวจขั้นสุดท้าย เพราะการ cross-build หรือรันผ่าน Rosetta ไม่สามารถยืนยันการเขียน SMC ได้
+
 ## แอปทำงานอย่างไร
 
 Orca รับเหตุการณ์จาก macOS ทันทีเมื่อแหล่งจ่ายไฟหรือสถานะแบตเปลี่ยน และตรวจซ้ำทุก 30 วินาทีเผื่อเหตุการณ์ตกหล่น รวมถึงตรวจใหม่หลังเครื่องตื่นจาก sleep ถ้าช่วงชาร์จไม่ตรงกับโหมดที่เลือก แอปจะส่งคำสั่งแก้แล้วอ่านค่ากลับอีกครั้ง จะแสดงว่า verified ก็ต่อเมื่อค่าตรงกันจริง
 
-คำสั่ง `batt` และ `pmset` ทำงานเบื้องหลัง จึงไม่ทำให้หน้าต่างแอปค้างระหว่างรอ daemon แต่ละคำสั่งมีเวลาให้ทำงานไม่เกิน 3 วินาที งานเก่าจะถูกยกเลิกเมื่อสลับโหมด และไม่อนุญาตให้มีคำสั่งควบคุมหลายชุดทำงานซ้อนกัน
+คำสั่ง `batt`, BCLM helper และ `pmset` ทำงานเบื้องหลัง จึงไม่ทำให้หน้าต่างแอปค้างระหว่างรอ backend แต่ละคำสั่งมีเวลาให้ทำงานไม่เกิน 3 วินาที งานเก่าจะถูกยกเลิกเมื่อสลับโหมด และไม่อนุญาตให้มีคำสั่งควบคุมหลายชุดทำงานซ้อนกัน
 
 แอปไม่ได้บังคับ discharge ระหว่างช่วงล่างกับช่วงบน ถ้าเครื่องใช้ไฟจาก Adapter และไม่ได้ชาร์จ สถานะจะเป็น `Holding` จนกว่าจะต้องเริ่มชาร์จอีกครั้ง
 
@@ -320,16 +350,16 @@ swift test
 swift test -c release
 ```
 
-ตอนนี้มี 92 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, architecture gating, power-source events, Simulation Mode, การบันทึกและ export ประวัติ, Battery Benchmark, Calibration, update checker และระบบภาษา/ฟอนต์ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
+ตอนนี้มี 102 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, BCLM readback, helper failure, platform routing, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, architecture gating, power-source events, Simulation Mode, การบันทึกและ export ประวัติ, Battery Benchmark, Calibration, update checker และระบบภาษา/ฟอนต์ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
 
-ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.8.0](docs/verification-0.8.0.md) และยังเปิดดู [รายงานรุ่น 0.7.0](docs/verification-0.7.0.md) ได้
+ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.9.0](docs/verification-0.9.0.md) และยังเปิดดู [รายงานรุ่น 0.8.0](docs/verification-0.8.0.md) ได้
 
 ## ข้อจำกัดตอนนี้
 
 - ยังไม่ได้ทดสอบกับ MacBook และ macOS ครบทุกรุ่น
-- Intel slice ผ่าน cross-build และทดสอบผ่าน Rosetta แล้ว แต่ยังควรทดสอบบน Intel MacBook จริง
+- Intel slice และเส้นทางคำสั่ง BCLM ผ่าน unit test/cross-build แล้ว แต่ยังไม่ได้ยืนยันการเขียน SMC บน Intel MacBook จริง
 - ยังไม่ได้ทดสอบเปิดต่อเนื่องหลายวัน, restart และ sleep/wake หลายรอบ
-- ยังใช้ `batt` เป็น backend ภายนอก ไม่ได้รวมตัวควบคุมมากับแอป
+- ยังใช้ `batt` และ `bclm` เป็น backend ภายนอก
 - ระบบอัปเดตทำหน้าที่ตรวจเวอร์ชันและเปิดหน้า Release เท่านั้น ยังไม่ดาวน์โหลดหรือติดตั้งรุ่นใหม่ให้อัตโนมัติ
 - Calibration ต้องพึ่งความสามารถของ `batt` และเป็นงานที่เพิ่มรอบชาร์จ จึงควรใช้เฉพาะเวลาที่ค่าประเมินแบตผิดปกติ ไม่ใช่งานประจำ
 - Cooling Pause เป็น policy ของแอป ไม่ใช่ระบบรับรองความปลอดภัยด้านอุณหภูมิ

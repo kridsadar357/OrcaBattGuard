@@ -44,7 +44,11 @@ public extension ChargeControlResult {
         guard language != .english else { return self }
         var value = self
         value.backendName = L10n.string(backendName, language: language)
-        if isHardwareControlAvailable, verifiedAt != nil {
+        if backendName == "BCLM", isHardwareControlAvailable, verifiedAt != nil, let upperLimit {
+            value.message = upperLimit < 100
+                ? L10n.string("Verified Intel BCLM upper limit: %d%%. Intel hardware does not provide a separate lower threshold.", language: language, upperLimit)
+                : L10n.string("Verified Intel BCLM limit: 100%. macOS manages charging normally.", language: language)
+        } else if isHardwareControlAvailable, verifiedAt != nil {
             if isLimitEnabled == true, let lowerLimit, let upperLimit {
                 value.message = L10n.string(
                     "Verified charge limits: %d-%d%%. Hardware charging may take time to reflect the policy.",

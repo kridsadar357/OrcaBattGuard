@@ -270,7 +270,9 @@ public struct ContentView: View {
                 Text(t("Charge profile"))
                     .font(language.uiFont(.headline, weight: .semibold))
                 Spacer()
-                Text(engine.effectiveThresholds.rangeText)
+                Text(MacArchitecture.current == .intel
+                    ? t("Stop at %d%%", engine.effectiveThresholds.upper)
+                    : engine.effectiveThresholds.rangeText)
                     .font(language.uiFont(.caption, weight: .semibold).monospacedDigit())
                     .foregroundStyle(GuardianPalette.accent)
             }
@@ -284,6 +286,13 @@ public struct ContentView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+
+            if MacArchitecture.current == .intel {
+                Label(t("Intel BCLM enforces the stop limit only. macOS and the SMC decide when charging resumes."), systemImage: "info.circle")
+                    .font(language.uiFont(.caption2))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -608,9 +617,19 @@ public struct ContentView: View {
                 }
 
                 SettingsGroup(title: t("Custom charge range"), icon: "slider.horizontal.3") {
-                    HStack(spacing: 10) {
-                        RangeStepper(title: t("Resume"), value: lowerBinding, range: 5...95)
-                        RangeStepper(title: t("Stop"), value: upperBinding, range: 10...100)
+                    if MacArchitecture.current == .intel {
+                        RangeStepper(title: t("Stop"), value: upperBinding, range: 50...100)
+                    } else {
+                        HStack(spacing: 10) {
+                            RangeStepper(title: t("Resume"), value: lowerBinding, range: 5...95)
+                            RangeStepper(title: t("Stop"), value: upperBinding, range: 10...100)
+                        }
+                    }
+                    if MacArchitecture.current == .intel {
+                        Text(t("Intel BCLM enforces the stop limit only. macOS and the SMC decide when charging resumes."))
+                            .font(language.uiFont(.caption2))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
@@ -670,23 +689,33 @@ public struct ContentView: View {
                         }
                         Spacer()
                     }
-                    if SystemChargeController.installedBattPath == nil {
-                        if MacArchitecture.current == .intel {
+                    if MacArchitecture.current == .intel {
+                        VStack(alignment: .leading, spacing: 8) {
                             Label {
-                                Text(t("Intel Macs run in monitoring mode because the verified batt backend supports Apple Silicon only."))
+                                Text(t(intelControllerDetail))
                                     .font(language.uiFont(.caption2))
                                     .foregroundStyle(.secondary)
                             } icon: {
-                                Image(systemName: "info.circle")
+                                Image(systemName: IntelBCLMSupport.isConfigured ? "checkmark.shield" : "info.circle")
                             }
-                        } else {
-                            HStack {
-                                Button(action: openBattGuide) {
-                                    Label(t("Installation Guide"), systemImage: "safari")
+                            if !IntelBCLMSupport.isConfigured {
+                                HStack {
+                                    Button(action: openIntelControllerGuide) {
+                                        Label(t("Installation Guide"), systemImage: "safari")
+                                    }
+                                    Button(action: copyIntelControllerInstallCommand) {
+                                        Label(t("Copy Setup Command"), systemImage: "doc.on.doc")
+                                    }
                                 }
-                                Button(action: copyBattInstallCommand) {
-                                    Label(t("Copy Install Command"), systemImage: "doc.on.doc")
-                                }
+                            }
+                        }
+                    } else if SystemChargeController.installedBattPath == nil {
+                        HStack {
+                            Button(action: openBattGuide) {
+                                Label(t("Installation Guide"), systemImage: "safari")
+                            }
+                            Button(action: copyBattInstallCommand) {
+                                Label(t("Copy Install Command"), systemImage: "doc.on.doc")
                             }
                         }
                     }
@@ -906,7 +935,7 @@ public struct ContentView: View {
     }
 
     private var protectionControlsEnabled: Bool {
-        settings.simulationMode || MacArchitecture.current != .intel
+        settings.simulationMode || MacArchitecture.current != .intel || IntelBCLMSupport.isConfigured
     }
 
     private var simulationBinding: Binding<Bool> {
@@ -935,7 +964,12 @@ public struct ContentView: View {
             get: { settings.customThresholds.upper },
             set: { newValue in
                 settings.mode = .custom
-                settings.customThresholds.upper = max(newValue, settings.customThresholds.lower + 5)
+                if MacArchitecture.current == .intel {
+                    settings.customThresholds.lower = min(settings.customThresholds.lower, newValue - 5)
+                    settings.customThresholds.upper = max(50, newValue)
+                } else {
+                    settings.customThresholds.upper = max(newValue, settings.customThresholds.lower + 5)
+                }
                 engine.refresh()
             }
         )
@@ -1071,6 +1105,23 @@ public struct ContentView: View {
 
     private func copyBattInstallCommand() {
         copyToPasteboard("brew install batt")
+    }
+
+    private var intelControllerDetail: String {
+        if IntelBCLMSupport.isConfigured {
+            return "Intel BCLM helper is installed. Orca verifies the upper charge limit after every change."
+        }
+        return "Install the Intel BCLM helper to enable verified charge limits on macOS 13 or 14."
+    }
+
+    private func openIntelControllerGuide() {
+        if let url = URL(string: "https://github.com/kridsadar357/OrcaBattGuard#intel-charge-control") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func copyIntelControllerInstallCommand() {
+        copyToPasteboard("brew tap zackelia/formulae; brew install bclm; git clone https://github.com/kridsadar357/OrcaBattGuard.git; cd OrcaBattGuard; ./Scripts/install-intel-controller.sh")
     }
 
     private func copyCLIInstallCommand() {
@@ -1308,7 +1359,7 @@ public struct MenuBarContentView: View {
     }
 
     private var protectionControlsEnabled: Bool {
-        settings.simulationMode || MacArchitecture.current != .intel
+        settings.simulationMode || MacArchitecture.current != .intel || IntelBCLMSupport.isConfigured
     }
 
     private var temperatureText: String {
@@ -1377,8 +1428,10 @@ private struct ThresholdRangeView: View {
         VStack(spacing: compact ? 7 : 9) {
             if !compact {
                 HStack {
-                    Label(t("Resume charging"), systemImage: "bolt.fill")
-                    Spacer()
+                    if MacArchitecture.current != .intel {
+                        Label(t("Resume charging"), systemImage: "bolt.fill")
+                        Spacer()
+                    }
                     Label(t("Stop charging"), systemImage: "pause.fill")
                 }
                 .font(language.uiFont(.caption))
@@ -1387,7 +1440,7 @@ private struct ThresholdRangeView: View {
 
             GeometryReader { proxy in
                 let width = proxy.size.width
-                let lowerX = width * CGFloat(thresholds.lower) / 100
+                let lowerX = MacArchitecture.current == .intel ? 0 : width * CGFloat(thresholds.lower) / 100
                 let upperX = width * CGFloat(thresholds.upper) / 100
 
                 ZStack(alignment: .leading) {
@@ -1396,11 +1449,13 @@ private struct ThresholdRangeView: View {
                         .fill(GuardianPalette.accent)
                         .frame(width: max(4, upperX - lowerX))
                         .offset(x: lowerX)
-                    Circle()
-                        .fill(GuardianPalette.background)
-                        .overlay(Circle().stroke(GuardianPalette.accent, lineWidth: 2))
-                        .frame(width: 12, height: 12)
-                        .offset(x: max(0, lowerX - 6))
+                    if MacArchitecture.current != .intel {
+                        Circle()
+                            .fill(GuardianPalette.background)
+                            .overlay(Circle().stroke(GuardianPalette.accent, lineWidth: 2))
+                            .frame(width: 12, height: 12)
+                            .offset(x: max(0, lowerX - 6))
+                    }
                     Circle()
                         .fill(GuardianPalette.accent)
                         .frame(width: 12, height: 12)
@@ -1410,10 +1465,15 @@ private struct ThresholdRangeView: View {
             .frame(height: 12)
 
             HStack {
-                Text("\(thresholds.lower)%")
-                Spacer()
-                Text(t(compact ? "Target range" : "Protected range"))
-                    .foregroundStyle(.secondary)
+                if MacArchitecture.current == .intel {
+                    Text(t("Stop limit"))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\(thresholds.lower)%")
+                    Spacer()
+                    Text(t(compact ? "Target range" : "Protected range"))
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Text("\(thresholds.upper)%")
             }

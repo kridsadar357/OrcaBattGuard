@@ -16,19 +16,22 @@ public actor SystemDiagnosticsService: DiagnosticsProviding {
     private let operatingSystemVersion: OperatingSystemVersion
     private let applicationPath: String
     private let architecture: MacArchitecture
+    private let intelHelperPath: String?
 
     public init(
         runner: any CommandRunning = ProcessCommandRunner(),
         battPath: String? = SystemChargeController.installedBattPath,
         operatingSystemVersion: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion,
         applicationPath: String = Bundle.main.bundlePath,
-        architecture: MacArchitecture = .current
+        architecture: MacArchitecture = .current,
+        intelHelperPath: String? = IntelBCLMSupport.isConfigured ? IntelBCLMSupport.helperPath : nil
     ) {
         self.runner = runner
         self.battPath = battPath
         self.operatingSystemVersion = operatingSystemVersion
         self.applicationPath = applicationPath
         self.architecture = architecture
+        self.intelHelperPath = intelHelperPath
     }
 
     public func run(snapshot: BatterySnapshot, language: AppLanguage) async -> [DiagnosticCheck] {
@@ -41,6 +44,10 @@ public actor SystemDiagnosticsService: DiagnosticsProviding {
             nativeLimitCheck(language: language),
             installationCheck(language: language)
         ]
+        if architecture == .intel {
+            checks.append(await intelControllerCheck(language: language))
+            return checks
+        }
         guard let battPath else {
             checks.append(DiagnosticCheck(id: "batt", title: text("Charge controller"),
                 detail: architecture == .intel
@@ -92,6 +99,41 @@ public actor SystemDiagnosticsService: DiagnosticsProviding {
         return checks
     }
 
+    private func intelControllerCheck(language: AppLanguage) async -> DiagnosticCheck {
+        guard IntelBCLMSupport.supports(architecture, osVersion: operatingSystemVersion) else {
+            return DiagnosticCheck(
+                id: "intel-controller",
+                title: L10n.string("Intel charge controller", language: language),
+                detail: L10n.string("BCLM writes are blocked on this macOS version. Orca will not ask you to disable SIP.", language: language),
+                level: .failed
+            )
+        }
+        guard let intelHelperPath else {
+            return DiagnosticCheck(
+                id: "intel-controller",
+                title: L10n.string("Intel charge controller", language: language),
+                detail: L10n.string("The Orca BCLM helper is not installed. Hardware charge control is unavailable.", language: language),
+                level: .warning
+            )
+        }
+        let response = await runner.run(executable: intelHelperPath, arguments: ["read"], timeout: 3)
+        let value = Int(response.output.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard response.succeeded, let value, (50...100).contains(value) else {
+            return DiagnosticCheck(
+                id: "intel-controller",
+                title: L10n.string("Intel charge controller", language: language),
+                detail: L10n.string("The Orca BCLM helper did not return a valid charge limit.", language: language),
+                level: .failed
+            )
+        }
+        return DiagnosticCheck(
+            id: "intel-controller",
+            title: L10n.string("Intel charge controller", language: language),
+            detail: L10n.string("Verified Intel BCLM upper limit: %d%%.", language: language, value),
+            level: .passed
+        )
+    }
+
     private func batteryCheck(_ snapshot: BatterySnapshot, language: AppLanguage) -> DiagnosticCheck {
         let available = snapshot.powerSource != .unknown && (0...100).contains(snapshot.percentage)
         return DiagnosticCheck(id: "battery", title: L10n.string("Battery data", language: language),
@@ -118,8 +160,13 @@ public actor SystemDiagnosticsService: DiagnosticsProviding {
             detail = L10n.string("Apple Silicon detected. Monitoring and verified batt charge control are available.", language: language)
             level = .passed
         case .intel:
-            detail = L10n.string("Intel x86_64 detected. Monitoring, history, benchmark, and CLI are available; hardware charge control is monitor-only.", language: language)
-            level = .information
+            if IntelBCLMSupport.supports(architecture, osVersion: operatingSystemVersion), intelHelperPath != nil {
+                detail = L10n.string("Intel x86_64 detected. The BCLM charge controller is configured.", language: language)
+                level = .passed
+            } else {
+                detail = L10n.string("Intel x86_64 detected. Monitoring is available; BCLM setup is required for hardware charge control.", language: language)
+                level = .information
+            }
         case .unknown:
             detail = L10n.string("Unknown Mac architecture. Hardware charge control is disabled.", language: language)
             level = .warning

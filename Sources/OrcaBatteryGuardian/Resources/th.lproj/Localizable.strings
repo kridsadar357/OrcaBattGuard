@@ -268,6 +268,8 @@
 "Architecture" = "สถาปัตยกรรมเครื่อง";
 "Apple Silicon detected. Monitoring and verified batt charge control are available." = "ตรวจพบ Apple Silicon รองรับทั้งการอ่านข้อมูลและการควบคุมการชาร์จผ่าน batt ที่ตรวจสอบสถานะกลับได้";
 "Intel x86_64 detected. Monitoring, history, benchmark, and CLI are available; hardware charge control is monitor-only." = "ตรวจพบ Intel x86_64 สามารถดูข้อมูล ประวัติ Benchmark และใช้ CLI ได้ ส่วนการควบคุมการชาร์จทำงานในโหมดตรวจสอบอย่างเดียว";
+"Intel x86_64 detected. The BCLM charge controller is configured." = "ตรวจพบ Intel x86_64 และตั้งค่าตัวควบคุม BCLM แล้ว";
+"Intel x86_64 detected. Monitoring is available; BCLM setup is required for hardware charge control." = "ตรวจพบ Intel x86_64 สามารถตรวจสอบข้อมูลได้ และต้องตั้งค่า BCLM ก่อนควบคุมการชาร์จจริง";
 "Unknown Mac architecture. Hardware charge control is disabled." = "ไม่ทราบสถาปัตยกรรมของ Mac จึงปิดการควบคุมการชาร์จจริง";
 "Battery data" = "ข้อมูลแบตเตอรี่";
 "Battery telemetry is available." = "อ่านข้อมูลแบตเตอรี่ได้ตามปกติ";
@@ -293,6 +295,11 @@
 "Available for limits from 80% to 100%. Avoid running two charge controllers at once." = "รองรับการจำกัดตั้งแต่ 80% ถึง 100% และไม่ควรใช้ตัวควบคุมสองตัวพร้อมกัน";
 "Not available on this macOS version; Orca can use batt instead." = "macOS รุ่นนี้ยังไม่รองรับ โดย Orca สามารถใช้ batt แทนได้";
 "Apple's native charge limit is unavailable on Intel Macs." = "ระบบจำกัดการชาร์จของ Apple ไม่รองรับ Mac รุ่น Intel";
+"Intel charge controller" = "ตัวควบคุมการชาร์จ Intel";
+"BCLM writes are blocked on this macOS version. Orca will not ask you to disable SIP." = "macOS รุ่นนี้บล็อกการเขียน BCLM และ Orca จะไม่ขอให้ปิด SIP";
+"The Orca BCLM helper is not installed. Hardware charge control is unavailable." = "ยังไม่ได้ติดตั้ง Orca BCLM helper จึงยังควบคุมการชาร์จจริงไม่ได้";
+"The Orca BCLM helper did not return a valid charge limit." = "Orca BCLM helper ไม่ส่งค่าจำกัดการชาร์จที่ถูกต้องกลับมา";
+"Verified Intel BCLM upper limit: %d%%." = "ยืนยันเพดาน Intel BCLM ที่ %d%% แล้ว";
 "Intel Macs run in monitoring mode because the verified batt backend supports Apple Silicon only." = "Mac รุ่น Intel ทำงานในโหมดตรวจสอบ เนื่องจาก batt ที่ Orca ใช้และตรวจสอบสถานะกลับได้นั้นรองรับเฉพาะ Apple Silicon";
 
 /* Charge controller details */
@@ -301,6 +308,21 @@
 "No batt backend found. Monitoring only. System battery information is available." = "ไม่พบ batt ขณะนี้ตรวจสอบสถานะได้อย่างเดียว แต่ยังอ่านข้อมูลแบตเตอรี่ของระบบได้";
 "No batt backend found. Monitoring only. System charge-limit readout is unavailable." = "ไม่พบ batt ขณะนี้ตรวจสอบสถานะได้อย่างเดียว และไม่สามารถอ่านค่าจำกัดการชาร์จของระบบได้";
 "Intel monitoring mode. Battery data, history, benchmark, and CLI remain available; hardware charge control is disabled." = "โหมดตรวจสอบสำหรับ Intel ยังอ่านข้อมูลแบตเตอรี่ เก็บประวัติ ทำ Benchmark และใช้ CLI ได้ แต่ปิดการควบคุมการชาร์จจริง";
+"BCLM" = "BCLM";
+"Verified Intel BCLM upper limit: %d%%. Intel hardware does not provide a separate lower threshold." = "ยืนยันเพดาน Intel BCLM ที่ %d%% แล้ว ฮาร์ดแวร์ Intel ไม่มีค่าเริ่มชาร์จด้านล่างแยกต่างหาก";
+"Verified Intel BCLM limit: 100%. macOS manages charging normally." = "ยืนยัน Intel BCLM ที่ 100% แล้ว และให้ macOS จัดการการชาร์จตามปกติ";
+"Intel charge control is supported only on macOS 13 and 14. macOS 15 or newer blocks BCLM writes unless SIP is disabled." = "การควบคุมการชาร์จ Intel รองรับเฉพาะ macOS 13 และ 14 ส่วน macOS 15 ขึ้นไปบล็อก BCLM หากไม่ปิด SIP";
+"Intel charge control is not configured. Install the Orca BCLM helper first." = "ยังไม่ได้ตั้งค่าการควบคุมการชาร์จ Intel โปรดติดตั้ง Orca BCLM helper ก่อน";
+"The Intel controller did not confirm the requested BCLM limit. Protection is unverified." = "ตัวควบคุม Intel ไม่ยืนยันค่า BCLM ที่ขอ การป้องกันจึงยังไม่ผ่านการยืนยัน";
+"The Intel controller returned an invalid BCLM value." = "ตัวควบคุม Intel ส่งค่า BCLM ที่ไม่ถูกต้องกลับมา";
+"The Intel charge controller timed out." = "ตัวควบคุมการชาร์จ Intel ไม่ตอบกลับภายในเวลาที่กำหนด";
+"The Intel charge controller response exceeded the output limit." = "ข้อมูลตอบกลับจากตัวควบคุมการชาร์จ Intel มีขนาดเกินกำหนด";
+"Copy Setup Command" = "คัดลอกคำสั่งตั้งค่า";
+"Intel BCLM helper is installed. Orca verifies the upper charge limit after every change." = "ติดตั้ง Intel BCLM helper แล้ว Orca จะอ่านเพดานกลับเพื่อยืนยันหลังเปลี่ยนค่าทุกครั้ง";
+"Install the Intel BCLM helper to enable verified charge limits on macOS 13 or 14." = "ติดตั้ง Intel BCLM helper เพื่อควบคุมและยืนยันเพดานชาร์จบน macOS 13 หรือ 14";
+"Intel BCLM enforces the stop limit only. macOS and the SMC decide when charging resumes." = "Intel BCLM ควบคุมเฉพาะเพดานหยุดชาร์จ ส่วนจังหวะเริ่มชาร์จให้ macOS และ SMC เป็นผู้จัดการ";
+"Stop at %d%%" = "หยุดที่ %d%%";
+"Stop limit" = "เพดานหยุดชาร์จ";
 "A controller update is already in progress." = "กำลังอัปเดตตัวควบคุมการชาร์จอยู่";
 "Controller update cancelled." = "ยกเลิกการอัปเดตตัวควบคุมแล้ว";
 "Battery data is unavailable. Hardware settings were not changed." = "ไม่มีข้อมูลแบตเตอรี่ จึงไม่ได้เปลี่ยนค่าฮาร์ดแวร์";

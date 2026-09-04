@@ -219,6 +219,14 @@ brew install kridsadar357/orca-batt-guard/orca-battery
 
 วิธีนี้ build CLI จาก source และต้องมี Xcode 16 หรือใหม่กว่า การติดตั้งผ่าน Formula เป็น CLI เท่านั้น ไม่ได้ติดตั้งแอป GUI หากต้องการทดลองโค้ดล่าสุดบน branch `main` ให้เพิ่ม `--HEAD` ในคำสั่ง `brew install`
 
+อัปเดตหรือถอน CLI ที่ติดตั้งผ่าน Homebrew ได้ตามปกติ:
+
+```sh
+brew update
+brew upgrade orca-battery
+brew uninstall orca-battery
+```
+
 ### การใช้งาน
 
 ```sh

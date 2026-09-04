@@ -17,7 +17,45 @@ import Testing
 
     #expect(decision.state == .holding)
     #expect(decision.desiredAction == .pauseCharging)
-    #expect(decision.statusText == "Holding at 80%")
+    #expect(decision.statusText == "Stopping Charge")
+}
+
+@Test func chargingContinuesInsideRange() {
+    let decision = GuardianStateMachine().decide(snapshot: sampleBattery(65, charging: true), thresholds: testLimits, protectionEnabled: true)
+    #expect(decision.state == .charging)
+    #expect(decision.desiredAction == .noChange)
+    #expect(decision.statusText == "Charging to 80%")
+}
+
+@Test func holdingInsideRangeDoesNotForceDischarge() {
+    let decision = GuardianStateMachine().decide(snapshot: sampleBattery(65, charging: false), thresholds: testLimits, protectionEnabled: true)
+    #expect(decision.state == .holding)
+    #expect(decision.desiredAction == .noChange)
+}
+
+@Test(arguments: [8, 50, 65, 90, 100]) func unpluggedBatteryNeverReportsChargingOrHolding(percent: Int) {
+    let battery = sampleBattery(percent, source: .battery)
+    let decision = GuardianStateMachine().decide(snapshot: battery, thresholds: testLimits, protectionEnabled: true)
+    #expect(decision.state == .discharging)
+    #expect(decision.desiredAction == .noChange)
+    #expect(decision.statusText == "On Battery")
+    #expect(battery.chargingDescription == "Discharging")
+}
+
+@Test func unavailableDataDoesNotRequestControl() {
+    for battery in [sampleBattery(0, source: .unknown), sampleBattery(-1), sampleBattery(101)] {
+        let decision = GuardianStateMachine().decide(snapshot: battery, thresholds: testLimits, protectionEnabled: true)
+        #expect(decision.state == .unknown)
+        #expect(decision.desiredAction == .noChange)
+    }
+}
+
+@Test func observedChargingIsSeparateFromRequestedPause() {
+    let battery = sampleBattery(80, charging: true)
+    let decision = GuardianStateMachine().decide(snapshot: battery, thresholds: testLimits, protectionEnabled: true)
+    #expect(decision.desiredAction == .pauseCharging)
+    #expect(battery.chargingDescription == "Charging")
+    #expect(sampleBattery(80, charging: false).chargingDescription == "Not Charging")
 }
 
 @Test func chargesAtLowerLimit() {
@@ -36,7 +74,7 @@ import Testing
 
     #expect(decision.state == .charging)
     #expect(decision.desiredAction == .allowCharging)
-    #expect(decision.statusText == "Charging to 80%")
+    #expect(decision.statusText == "Starting Charge")
 }
 
 @Test func criticalLowOverridesHeatPause() {

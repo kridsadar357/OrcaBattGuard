@@ -37,6 +37,16 @@ public final class GuardianSettings: ObservableObject {
         }
     }
 
+    @Published public var chargeToFullUntil: Date? {
+        didSet {
+            if let chargeToFullUntil {
+                defaults.set(chargeToFullUntil, forKey: Keys.chargeToFullUntil)
+            } else {
+                defaults.removeObject(forKey: Keys.chargeToFullUntil)
+            }
+        }
+    }
+
     private let defaults: UserDefaults
 
     public var activeThresholds: ChargeThresholds {
@@ -47,6 +57,11 @@ public final class GuardianSettings: ObservableObject {
             criticalLow: customThresholds.criticalLow,
             hotTemperatureC: customThresholds.hotTemperatureC
         ).normalized
+    }
+
+    public var isChargeToFullActive: Bool {
+        guard let chargeToFullUntil else { return false }
+        return chargeToFullUntil > Date()
     }
 
     public init(defaults: UserDefaults = .standard) {
@@ -63,6 +78,15 @@ public final class GuardianSettings: ObservableObject {
         simulationMode = defaults.object(forKey: Keys.simulationMode) as? Bool ?? false
         notificationsEnabled = defaults.object(forKey: Keys.notificationsEnabled) as? Bool ?? true
         launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
+        chargeToFullUntil = defaults.object(forKey: Keys.chargeToFullUntil) as? Date
+    }
+
+    public func beginTemporaryFullCharge(duration: FullChargeDuration, now: Date = Date()) {
+        chargeToFullUntil = now.addingTimeInterval(duration.rawValue)
+    }
+
+    public func endTemporaryFullCharge() {
+        chargeToFullUntil = nil
     }
 
     private func configureLaunchAtLogin(_ enabled: Bool) {
@@ -89,5 +113,6 @@ public final class GuardianSettings: ObservableObject {
         static let simulationMode = "guardian.simulationMode"
         static let notificationsEnabled = "guardian.notificationsEnabled"
         static let launchAtLogin = "guardian.launchAtLogin"
+        static let chargeToFullUntil = "guardian.chargeToFullUntil"
     }
 }

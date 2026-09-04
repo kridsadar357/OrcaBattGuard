@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 private enum GuardianPalette {
@@ -100,7 +101,8 @@ public struct ContentView: View {
             VStack(spacing: 14) {
                 statusPanel
                 modeSelector
-                ThresholdRangeView(thresholds: settings.activeThresholds)
+                temporaryFullChargeControl
+                ThresholdRangeView(thresholds: engine.effectiveThresholds)
                 metricGrid
                 controlStatus
             }
@@ -154,7 +156,7 @@ public struct ContentView: View {
                 Text("Charge profile")
                     .font(.headline)
                 Spacer()
-                Text(settings.activeThresholds.rangeText)
+                Text(engine.effectiveThresholds.rangeText)
                     .font(.caption.monospacedDigit().weight(.semibold))
                     .foregroundStyle(GuardianPalette.accent)
             }
@@ -171,10 +173,52 @@ public struct ContentView: View {
         }
     }
 
+    private var temporaryFullChargeControl: some View {
+        HStack(spacing: 10) {
+            Image(systemName: settings.isChargeToFullActive ? "bolt.badge.clock.fill" : "bolt.badge.clock")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(settings.isChargeToFullActive ? GuardianPalette.accent : GuardianPalette.cyan)
+                .frame(width: 22)
+
+            if let until = settings.chargeToFullUntil, settings.isChargeToFullActive {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Charging to 100%")
+                        .font(.caption.weight(.semibold))
+                    Text(timerInterval: Date()...until, countsDown: true)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(action: engine.cancelTemporaryFullCharge) {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .help("Cancel temporary full charge")
+            } else {
+                Text("Temporary full charge")
+                    .font(.caption.weight(.semibold))
+                Spacer()
+                Menu {
+                    ForEach(FullChargeDuration.allCases) { duration in
+                        Button(duration.title) { engine.beginTemporaryFullCharge(duration) }
+                    }
+                } label: {
+                    Label("Charge to 100%", systemImage: "battery.100percent")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .disabled(!settings.protectionEnabled)
+                .help(settings.protectionEnabled ? "Temporarily allow charging to 100%" : "Turn on Battery Protection first")
+            }
+        }
+        .padding(11)
+        .background(GuardianPalette.raised.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+    }
+
     private var metricGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
             MetricTile(title: "Power", value: engine.snapshot.powerSource.rawValue, icon: powerIcon, color: GuardianPalette.cyan)
-            MetricTile(title: "State", value: engine.decision.state.rawValue, icon: "bolt.fill", color: statusColor(for: engine.decision.state))
+            MetricTile(title: "State", value: engine.snapshot.chargingDescription, icon: "bolt.fill", color: statusColor(for: engine.decision.state))
             MetricTile(title: "Temperature", value: temperatureText, icon: "thermometer.medium", color: temperatureColor)
             MetricTile(title: "Health", value: engine.snapshot.health ?? "Unavailable", icon: "heart.fill", color: GuardianPalette.accent)
             MetricTile(title: "Cycles", value: engine.snapshot.cycleCount.map(String.init) ?? "Unavailable", icon: "arrow.triangle.2.circlepath", color: GuardianPalette.cyan)
@@ -195,7 +239,7 @@ public struct ContentView: View {
                 Text(controlDetail)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
         }
@@ -209,7 +253,7 @@ public struct ContentView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Status history")
                         .font(.headline)
-                    Text("State changes from this session")
+                    Text("Recent activity saved on this Mac")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -217,6 +261,13 @@ public struct ContentView: View {
                 Text("\(engine.events.count)")
                     .font(.title3.monospacedDigit().weight(.semibold))
                     .foregroundStyle(GuardianPalette.cyan)
+            }
+
+            if let error = engine.historyError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(GuardianPalette.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if engine.events.isEmpty {
@@ -265,6 +316,10 @@ public struct ContentView: View {
                         Stepper(value: temperatureBinding, in: 30...55, step: 1) {
                             SettingValueRow(title: "Cooling pause", value: "\(Int(settings.customThresholds.hotTemperatureC)) C")
                         }
+                        Text("Resume after 5 minutes and 3 C below the pause temperature")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
 
@@ -301,8 +356,56 @@ public struct ContentView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                            if let verifiedAt = engine.chargeControlResult.verifiedAt {
+                                Text("Verified \(verifiedAt.formatted(date: .abbreviated, time: .standard))")
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
+                    }
+                }
+
+                if engine.isNativeChargeLimitAvailable {
+                    SettingsGroup(title: "macOS Charge Limit", icon: "apple.logo") {
+                        HStack(spacing: 10) {
+                            Label("Available · 80-100%", systemImage: "checkmark.circle.fill")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(GuardianPalette.accent)
+                            Spacer()
+                            Button(action: useMacOSChargeLimit) {
+                                Label("Use macOS Limit", systemImage: "arrow.up.forward.app")
+                            }
+                            .help("Disable Orca control and open Battery Settings")
+                        }
+                    }
+                }
+
+                SettingsGroup(title: "Diagnostics", icon: "stethoscope") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text(diagnosticsSummary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button {
+                                Task { await engine.runDiagnostics() }
+                            } label: {
+                                if engine.isRunningDiagnostics {
+                                    ProgressView().controlSize(.small)
+                                } else {
+                                    Label("Run", systemImage: "play.fill")
+                                }
+                            }
+                            .disabled(engine.isRunningDiagnostics)
+                        }
+
+                        ForEach(engine.diagnosticChecks) { check in
+                            DiagnosticRow(check: check)
+                            if check.id != engine.diagnosticChecks.last?.id {
+                                Divider().overlay(GuardianPalette.stroke)
+                            }
+                        }
                     }
                 }
             }
@@ -312,10 +415,12 @@ public struct ContentView: View {
 
     private var footer: some View {
         HStack(spacing: 7) {
-            Image(systemName: settings.protectionEnabled ? "shield.checkered" : "shield.slash")
-                .foregroundStyle(settings.protectionEnabled ? GuardianPalette.accent : .secondary)
-            Text(settings.protectionEnabled ? "Battery Protection Active" : "Protection Disabled")
+            Image(systemName: controlIcon)
+                .foregroundStyle(controlColor)
+            Text(engine.protectionStatusText)
                 .font(.caption.weight(.medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Spacer()
             Text(engine.snapshot.timestamp, format: .dateTime.hour().minute().second())
                 .font(.caption2.monospacedDigit())
@@ -342,10 +447,7 @@ public struct ContentView: View {
     private var protectionBinding: Binding<Bool> {
         Binding(
             get: { settings.protectionEnabled },
-            set: {
-                settings.protectionEnabled = $0
-                engine.refresh()
-            }
+            set: { engine.setProtectionEnabled($0) }
         )
     }
 
@@ -421,28 +523,45 @@ public struct ContentView: View {
 
     private var controlValue: String {
         if settings.simulationMode { return "Simulation" }
-        return engine.chargeControlResult.isHardwareControlAvailable ? "Connected" : "Needs Setup"
+        if engine.chargeControlResult.backendName == "Checking" { return "Checking" }
+        return engine.isControlVerified ? "Verified" : "Unverified"
     }
 
     private var controlTitle: String {
-        if settings.simulationMode { return "Simulation is running" }
-        return engine.chargeControlResult.isHardwareControlAvailable ? "Hardware protection connected" : "Hardware protection needs setup"
+        engine.protectionStatusText
     }
 
     private var controlDetail: String {
         if settings.simulationMode { return "Live battery settings are not changed." }
-        if engine.chargeControlResult.isHardwareControlAvailable {
-            return "Charge limits are being applied by \(engine.chargeControlResult.backendName)."
-        }
-        return "Open Settings to review the controller status."
+        return engine.chargeControlResult.message
     }
 
     private var controlIcon: String {
-        settings.simulationMode ? "testtube.2" : (engine.chargeControlResult.isHardwareControlAvailable ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+        if settings.simulationMode { return "testtube.2" }
+        if settings.isChargeToFullActive { return "bolt.badge.clock.fill" }
+        return engine.isControlVerified ? (engine.chargeControlResult.isLimitEnabled == true ? "checkmark.shield.fill" : "shield.slash") : "exclamationmark.shield.fill"
     }
 
     private var controlColor: Color {
-        settings.simulationMode ? GuardianPalette.cyan : (engine.chargeControlResult.isHardwareControlAvailable ? GuardianPalette.accent : GuardianPalette.warning)
+        if settings.simulationMode { return GuardianPalette.cyan }
+        if settings.isChargeToFullActive { return GuardianPalette.accent }
+        return engine.isControlVerified ? (engine.chargeControlResult.isLimitEnabled == true ? GuardianPalette.accent : .secondary) : GuardianPalette.warning
+    }
+
+    private var diagnosticsSummary: String {
+        guard !engine.diagnosticChecks.isEmpty else { return "Not run yet" }
+        let issues = engine.diagnosticChecks.filter { $0.level == .warning || $0.level == .failed }.count
+        return issues == 0 ? "All checks passed" : "\(issues) item\(issues == 1 ? "" : "s") need attention"
+    }
+
+    private func openBatterySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.Battery-Settings.extension") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func useMacOSChargeLimit() {
+        engine.switchToMacOSChargeLimit()
+        openBatterySettings()
     }
 
     private func shortTitle(for mode: GuardianMode) -> String {
@@ -494,12 +613,12 @@ public struct MenuBarContentView: View {
                 Spacer()
             }
 
-            ThresholdRangeView(thresholds: settings.activeThresholds, compact: true)
+            ThresholdRangeView(thresholds: engine.effectiveThresholds, compact: true)
 
             HStack {
                 Label(temperatureText, systemImage: "thermometer.medium")
                 Spacer()
-                Label(settings.mode.title, systemImage: "slider.horizontal.3")
+                Label(engine.effectiveModeTitle, systemImage: settings.isChargeToFullActive ? "bolt.badge.clock" : "slider.horizontal.3")
                     .lineLimit(1)
             }
             .font(.caption.weight(.medium))
@@ -508,6 +627,28 @@ public struct MenuBarContentView: View {
             Toggle("Battery protection", isOn: protectionBinding)
                 .toggleStyle(.switch)
                 .tint(GuardianPalette.accent)
+
+            if let until = settings.chargeToFullUntil, settings.isChargeToFullActive {
+                HStack {
+                    Label("Charging to 100%", systemImage: "battery.100percent")
+                    Spacer()
+                    Text(timerInterval: Date()...until, countsDown: true)
+                        .monospacedDigit()
+                    Button(action: engine.cancelTemporaryFullCharge) {
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Cancel temporary full charge")
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(GuardianPalette.accent)
+            }
+
+            Label(engine.protectionStatusText, systemImage: settings.simulationMode ? "testtube.2" : (engine.isControlVerified ? "shield.lefthalf.filled" : "exclamationmark.triangle"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(settings.simulationMode ? GuardianPalette.cyan : (engine.isControlVerified ? GuardianPalette.accent : GuardianPalette.warning))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .help(engine.chargeControlResult.message)
 
             HStack(spacing: 8) {
                 Button(action: onOpen) {
@@ -544,10 +685,7 @@ public struct MenuBarContentView: View {
     private var protectionBinding: Binding<Bool> {
         Binding(
             get: { settings.protectionEnabled },
-            set: {
-                settings.protectionEnabled = $0
-                engine.refresh()
-            }
+            set: { engine.setProtectionEnabled($0) }
         )
     }
 
@@ -706,17 +844,55 @@ private struct EventRow: View {
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
                     Spacer()
-                    Text(event.date, format: .dateTime.hour().minute().second())
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
                 }
+                Text(event.date, format: .dateTime.day().month().year().hour().minute().second())
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
                 Text(event.detail)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(12)
+    }
+}
+
+private struct DiagnosticRow: View {
+    let check: DiagnosticCheck
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 18, height: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(check.title)
+                    .font(.caption.weight(.semibold))
+                Text(check.detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var icon: String {
+        switch check.level {
+        case .passed: "checkmark.circle.fill"
+        case .information: "info.circle.fill"
+        case .warning: "exclamationmark.triangle.fill"
+        case .failed: "xmark.octagon.fill"
+        }
+    }
+
+    private var color: Color {
+        switch check.level {
+        case .passed: GuardianPalette.accent
+        case .information: GuardianPalette.cyan
+        case .warning, .failed: GuardianPalette.warning
+        }
     }
 }
 

@@ -4,15 +4,17 @@
 
 # Orca Battery Guardian
 
-แอปจัดการแบตเตอรี่ MacBook แบบ compact dashboard และ Menu Bar เขียนด้วย **Swift + SwiftUI** ออกแบบสำหรับ Apple Silicon เป็นหลัก มีมาสคอตออร์ก้าใช้ MacBook พร้อมสถานะแบตเตอรี่ที่ดูได้ระหว่างทำงาน
+Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar สำหรับดูแลการชาร์จ MacBook ผมทำขึ้นมาเพราะไม่อยากปล่อยให้เครื่องเสียบสายและค้างอยู่ที่ 100% ตลอดวัน แต่ก็ไม่อยากได้แอปที่มีหน้าต่างใหญ่หรือเมนูซับซ้อน
 
-**Version 0.2.0 · Early Beta · macOS 13+ · Swift 6**
+ตัวแอปเขียนด้วย Swift และ SwiftUI แสดงเปอร์เซ็นต์แบต แหล่งจ่ายไฟ อุณหภูมิ สุขภาพแบต และจำนวนรอบชาร์จเท่าที่ macOS อ่านได้ พร้อมตั้งช่วงชาร์จที่ต้องการจากหน้าเดียว
 
-> แอปควบคุม charge limit จริงผ่าน [batt](https://github.com/charlie0129/batt) เมื่อมี daemon ที่ตั้งค่าและทำงานอยู่ หากไม่มี backend ที่พร้อมใช้งาน จะอ่านข้อมูลแบตเตอรี่ได้ แต่ไม่สามารถควบคุมการชาร์จจริงได้ รุ่นนี้ยังมีข้อจำกัดด้านความน่าเชื่อถือที่ระบุไว้ด้านล่าง และยังไม่ใช่ production release
+**เวอร์ชัน 0.4.0 (Beta) · macOS 13 ขึ้นไป · รองรับ Apple Silicon เป็นหลัก**
 
-## ภาพจากการใช้งานจริง
+> การจำกัดการชาร์จจริงใช้ [batt](https://github.com/charlie0129/batt) ซึ่งต้องติดตั้งแยก หากไม่มี `batt` แอปยังดูข้อมูลแบตได้ แต่จะไม่สามารถเปลี่ยน charge limit ให้เครื่อง
 
-ภาพทั้ง 4 ภาพด้านล่างเป็น screenshot จากตัวแอปที่รันจริง ไม่ใช่ design mockup คลิกที่ภาพเพื่อดูขนาดเต็ม
+## หน้าตาแอป
+
+ภาพเหล่านี้มาจากแอปที่รันจริงในเวอร์ชัน 0.2.0 ส่วนเวอร์ชัน 0.3.0 ปรับข้อความสถานะและการตรวจสอบ controller ให้ตรงกับเครื่องมากขึ้น
 
 <table>
   <tr>
@@ -20,187 +22,164 @@
     <th>Menu Bar</th>
   </tr>
   <tr>
-    <td valign="top"><a href="docs/images/overview.png"><img src="docs/images/overview.png" alt="Overview showing 90 percent battery, Balanced mode and a 50-80 percent target range" width="420"></a></td>
-    <td valign="top"><a href="docs/images/menu-bar.png"><img src="docs/images/menu-bar.png" alt="Compact menu bar panel with the orca mascot, battery status and protection toggle" width="420"></a></td>
+    <td valign="top"><a href="docs/images/overview.png"><img src="docs/images/overview.png" alt="Orca Battery Guardian overview" width="420"></a></td>
+    <td valign="top"><a href="docs/images/menu-bar.png"><img src="docs/images/menu-bar.png" alt="Orca Battery Guardian menu bar" width="420"></a></td>
   </tr>
   <tr>
     <th>Activity</th>
     <th>Settings</th>
   </tr>
   <tr>
-    <td valign="top"><a href="docs/images/activity.png"><img src="docs/images/activity.png" alt="Activity view showing a timestamped battery protection event" width="420"></a></td>
-    <td valign="top"><a href="docs/images/settings.png"><img src="docs/images/settings.png" alt="Settings view with charge thresholds, safety limits, notifications, login and simulation options" width="420"></a></td>
+    <td valign="top"><a href="docs/images/activity.png"><img src="docs/images/activity.png" alt="Orca Battery Guardian activity history" width="420"></a></td>
+    <td valign="top"><a href="docs/images/settings.png"><img src="docs/images/settings.png" alt="Orca Battery Guardian settings" width="420"></a></td>
   </tr>
 </table>
 
-ค่าที่เห็นเป็นสถานะ ณ เวลาถ่ายภาพ ไม่ใช่ค่าปัจจุบันของเครื่อง และข้อความอย่าง `Holding` เป็นผลจาก policy ของแอป ซึ่งในรุ่นนี้อาจไม่ตรงกับสถานะการชาร์จจริงทุกกรณี โดยเฉพาะเมื่อใช้ไฟจากแบตเตอรี่ ดูหัวข้อข้อจำกัดก่อนใช้งาน
+## ทำอะไรได้บ้าง
 
-## แอปช่วยอะไร
+- ดูสถานะแบตได้จาก Menu Bar โดยไม่ต้องเปิด System Settings
+- เลือกช่วงชาร์จสำเร็จรูป หรือกำหนดช่วงเอง
+- หยุดเติมไฟเมื่อถึงเพดาน โดยไม่บังคับระบายแบตลงมา
+- พักการชาร์จเมื่ออุณหภูมิสูง และยอมให้ชาร์จเมื่อแบตต่ำมาก
+- เปิดพร้อมเครื่องและแจ้งเตือนเมื่อสถานะสำคัญเปลี่ยน
+- เก็บประวัติการทำงานไว้ดูย้อนหลัง
+- มี Simulation Mode สำหรับลองหน้าจอและ state machine โดยไม่ส่งคำสั่งไปที่ฮาร์ดแวร์
+- สั่งชาร์จถึง 100% ชั่วคราว 1, 2 หรือ 4 ชั่วโมง แล้วกลับไปใช้โหมดเดิมเอง
+- ตรวจ `batt`, daemon, charge limit และความเข้ากันได้จากหน้า Diagnostics
 
-Orca ตั้งเป้าจำกัดการเติมไฟเข้าแบตเมื่อถึงระดับที่เลือก โดยไม่บังคับให้แบตขึ้นลงเป็นรอบทั้งวันที่เสียบ Adapter เหมาะกับผู้ใช้ที่ต้องการกำหนดช่วงชาร์จเองและดูสถานะจาก Menu Bar ได้สะดวก
+## โหมดการชาร์จ
 
-- **Overview:** แสดง Battery %, power source, สถานะจาก policy, อุณหภูมิ, battery health และ cycle count เท่าที่ระบบให้ข้อมูล
-- **Charge profiles:** เลือก Maximum Life, Balanced, Travel หรือกำหนด lower/upper threshold เอง
-- **Menu Bar:** ไอคอนออร์ก้าพร้อมเปอร์เซ็นต์ และ panel ย่อสำหรับดูสถานะ เปิด dashboard, refresh หรือ quit
-- **Safety policy:** critical-low override และ cooling pause ตามค่าที่ตั้งไว้
-- **Activity:** แสดงเหตุการณ์เปลี่ยนสถานะพร้อมเวลา เก็บสูงสุด 60 รายการใน session ปัจจุบัน
-- **Preferences:** สวิตช์ protection, notifications, launch at login และ simulation
-- **Simulation:** อ่านข้อมูลจำลองและใช้ no-op controller โดยไม่ส่งคำสั่งจากข้อมูลจำลองไปยังฮาร์ดแวร์
-- **Custom artwork:** mascot, Menu Bar icon และ macOS application icon รวมอยู่ในโปรเจกต์
+| โหมด | เริ่มชาร์จ | หยุดชาร์จ | เหมาะกับ |
+| --- | ---: | ---: | --- |
+| Maximum Life | 50% | 70% | เครื่องที่เสียบ Adapter อยู่กับโต๊ะเป็นส่วนใหญ่ |
+| Balanced | 50% | 80% | ใช้งานทั่วไป และเป็นค่าเริ่มต้นของแอป |
+| Travel | 20% | 100% | วันที่ต้องการแบตเต็มก่อนออกไปข้างนอก |
+| Custom | กำหนดเอง | กำหนดเอง | คนที่ต้องการตั้งช่วงให้เข้ากับการใช้งานของตัวเอง |
 
-แอปไม่ได้ซ่อมแบตเตอรี่ที่เสื่อมแล้ว ไม่รับประกันอายุแบต และไม่ได้แทนที่ระบบป้องกันแบตเตอรี่ของ macOS หรือฮาร์ดแวร์
+ในโหมด Custom ค่าเริ่มและหยุดต้องห่างกันอย่างน้อย 5% ส่วน Travel จะปิด charge limit แล้วปล่อยให้ macOS จัดการการชาร์จตามปกติ ไม่ได้บังคับให้แบตวิ่งระหว่าง 20-100%
 
-## Charge Profiles
+### ตั้งไว้ 80% แต่ทำไมแบตยังอยู่ 100%
 
-| Profile | Lower threshold | Upper threshold | การใช้งาน |
-| --- | --- | --- | --- |
-| Maximum Life | 50% | 70% | เพดานต่ำสำหรับการทำงานที่เสียบ Adapter เป็นหลัก |
-| Balanced | 50% | 80% | ค่าเริ่มต้นสำหรับการใช้งานทั่วไป |
-| Travel | 20% | 100% | เตรียมชาร์จเต็มก่อนนำเครื่องออกไปใช้งาน |
-| Custom | ตั้งค่าเอง | ตั้งค่าเอง | กำหนดช่วงให้เหมาะกับการใช้งาน |
+เพราะ Orca ไม่ได้สั่งให้เครื่องใช้แบตทั้งที่ยังเสียบสายอยู่ ถ้าเปิดใช้ตอนแบตเต็ม เครื่องอาจรับไฟจาก Adapter โดยที่เปอร์เซ็นต์ยังค้างอยู่แถวเดิมได้
 
-ชื่อโปรไฟล์เป็น preset ของแอป ไม่ใช่คำรับประกันผลต่ออายุแบตเตอรี่ ค่า Custom ถูกปรับให้อยู่ในช่วงที่รองรับ โดย upper ต้องสูงกว่า lower อย่างน้อย 5 จุดเปอร์เซ็นต์
+ถ้าต้องการเห็นผลทันที ให้ถอดสายและใช้งานจนแบตลดลงมาใกล้ช่วงที่ตั้งไว้ แล้วค่อยเสียบกลับ แอปไม่มีโหมดบังคับ discharge เพราะไม่ต้องการเพิ่มรอบแบตโดยไม่จำเป็น
 
-**ข้อสำคัญของ Travel:** backend ปัจจุบันใช้ `batt disable` เมื่อ upper เป็น 100% จึงคืนการจัดการ charge limit ให้ระบบ ไม่ได้บังคับวงรอบชาร์จจริง 20-100%
+### ชาร์จเต็มชั่วคราว
 
-## หลักการทำงาน
+กด `Charge to 100%` แล้วเลือกระยะเวลา 1, 2 หรือ 4 ชั่วโมง Orca จะจำโหมดเดิมไว้และนำกลับมาใช้เมื่อแบตเต็ม, หมดเวลา, ยกเลิก หรือ Quit แอป เวลาที่เลือกไว้ยังอยู่หลังปิดแล้วเปิดแอปใหม่หากยังไม่หมดอายุ
 
-ตัวอย่าง Balanced 50-80% เมื่อมี Adapter และ backend พร้อมใช้งาน:
+ฟังก์ชันนี้ใช้ได้เมื่อเปิด Battery Protection และใช้ controller ของ Orca หากกำลังใช้ Charge Limit ของ macOS ให้ใช้คำสั่ง `Charge to Full Now` จากเมนูแบตเตอรี่ของระบบแทน
 
-1. เมื่อต่ำกว่า lower threshold ระบบสามารถเริ่มชาร์จได้ตาม policy
-2. เมื่อถึง upper threshold ตัวควบคุมจำกัดการชาร์จโดยไม่สั่งตัดไฟจาก Adapter
-3. ระหว่าง threshold ทั้งสอง `batt` ใช้ hysteresis เพื่อคงสถานะชาร์จเดิม ไม่สลับเปิด/ปิดทุกครั้งที่เปอร์เซ็นต์เปลี่ยน
-4. แอปอ่านข้อมูลและประเมิน policy โดยปกติทุก 5 วินาทีขณะทำงาน การเปลี่ยนสถานะที่รายงานโดย backend อาจมีความหน่วง
+## ติดตั้งสำหรับใช้งานบนเครื่องตัวเอง
 
-### ทำไมตั้ง 80% แล้วแบตยังอยู่ 100%
-
-**หยุดชาร์จไม่เท่ากับบังคับระบายแบต** หากเริ่มใช้ Orca ตอนแบตเต็ม เครื่องยังรับพลังงานจาก Adapter ได้ จึงไม่จำเป็นต้องลดลงถึง 80% ทันที
-
-สามารถถอดสาย ใช้งานแบตลงมาใกล้ช่วงเป้าหมาย แล้วเสียบกลับเพื่อสังเกตพฤติกรรม รุ่นนี้ยังไม่มี `Drain to Limit` และไม่บังคับ discharge อัตโนมัติ
-
-### Safety Policy
-
-- ค่าเริ่มต้น critical low คือ **15%** และ cooling pause คือ **38 C**
-- ตรรกะปัจจุบันให้ critical-low override มาก่อน cooling pause หากเข้าเงื่อนไขทั้งสองพร้อมกัน
-- Cooling pause ใช้การลด upper charge limit ชั่วคราวผ่าน `batt` แล้วคืนช่วงที่เลือกเมื่อพ้นเงื่อนไขร้อน ไม่ได้สั่งควบคุมพัดลมหรือระบายความร้อนให้เครื่อง
-- ต้องมีแหล่งจ่ายไฟจึงจะชาร์จได้ และต้องมีแอปทำงานเพื่อประเมินอุณหภูมิใหม่ นี่เป็น policy ระดับแอป ไม่ใช่ระบบป้องกันอุณหภูมิที่รับประกันได้
-
-## Requirements
-
-- MacBook ที่ใช้ **Apple Silicon** สำหรับ backend ควบคุมชาร์จที่รองรับ รุ่น Intel ยังไม่ใช่เป้าหมายที่ยืนยันการรองรับ
-- **macOS 13 ขึ้นไป** ตาม deployment target ของแพ็กเกจ ไม่ได้หมายความว่าทดสอบแล้วครบทุก macOS/รุ่นเครื่อง
-- **Swift 6 toolchain** และ Xcode หรือ Command Line Tools ที่มี macOS SDK สำหรับ build
-- [Homebrew](https://brew.sh/) และ `batt` หากต้องการควบคุม charge limit จริง
-- สิทธิ์ผู้ดูแลระบบสำหรับตั้งค่า service ของ `batt` และสิทธิ์ Notifications/Login Items ตามที่ macOS กำหนด
-
-## Build & Run
+ต้องมี Xcode หรือ Command Line Tools ที่รองรับ Swift 6 ก่อน จากนั้นรัน:
 
 ```sh
 git clone https://github.com/kridsadar357/OrcaBattGuard.git
 cd OrcaBattGuard
 swift test
 ./Scripts/package-app.sh
-open build/OrcaBatteryGuardian.app
+./Scripts/install-app.sh
 ```
 
-สคริปต์สร้าง `build/OrcaBatteryGuardian.app` พร้อม resource bundle และ `AppIcon.icns` แล้วเซ็นแบบ ad-hoc สำหรับใช้งานในเครื่อง ปัจจุบันใช้ **Debug build** และยังไม่ได้ Developer ID signing หรือ notarization
+`package-app.sh` จะสร้าง Release build ไว้ที่ `build/OrcaBatteryGuardian.app` และเซ็นแบบ ad-hoc สำหรับเครื่องที่ build ส่วน `install-app.sh` จะติดตั้งไปที่ `/Applications` แล้วเปิดแอปให้ หากมีเวอร์ชันเก่าอยู่ สคริปต์จะรอให้แอปปิดและสำรองไฟล์เดิมก่อนแทนที่
 
-สำหรับรันระหว่างพัฒนา:
+ระหว่างพัฒนาสามารถรันตรงจาก Swift Package ได้:
 
 ```sh
 swift run OrcaBatteryGuardian
 ```
 
-การรันแบบนี้ยังอ่านแบตและอาจส่งคำสั่งควบคุมจริงได้หากพบ `batt` แต่ปิดการเรียก Notifications เพราะไม่ได้รันใน `.app` bundle ควรใช้ bundle เมื่อต้องการทดสอบพฤติกรรมแอป macOS รวมถึง launch at login
+การรันคำสั่งนี้ยังควบคุมแบตจริงได้หากพบ `batt` ถ้าต้องการลองโดยไม่แตะค่าของเครื่อง ให้เปิด Simulation Mode ก่อน
 
-## เปิดใช้ Charge Control จริง
+## เปิดใช้การควบคุมการชาร์จจริง
 
-Orca ไม่ได้รวม privileged helper ของตัวเองหรือ binary ของ `batt` มาให้ แอปเรียก backend แยกผ่าน `ChargeControlling` และไม่ได้เขียนค่า SMC โดยตรง แต่การควบคุมฮาร์ดแวร์ของ `batt` ยังเป็นกลไก third-party ที่ไม่ใช่ public charge-control API ของ Apple
-
-แนวทาง Homebrew สำหรับ `batt` 0.8.0 ที่ตรวจสอบกับโปรเจกต์นี้:
+โปรเจกต์นี้ไม่ได้เขียนค่า SMC โดยตรงและไม่มี privileged helper ของตัวเอง การควบคุม charge limit จึงอาศัย `batt` ที่ติดตั้งแยกต่างหาก
 
 ```sh
 brew install batt
 sudo brew services start batt
-batt status
+batt status --json
 ```
 
-Homebrew ระบุว่า service ต้องทำงานด้วยสิทธิ์ root ก่อนใช้คำสั่งส่วนใหญ่ อ่าน [เอกสารของ batt](https://github.com/charlie0129/batt) เพิ่มเติมสำหรับสิทธิ์เข้าถึง daemon และการตั้งค่าที่ตรงกับเวอร์ชันที่ติดตั้ง อย่ารัน GUI ของ Orca ด้วย `sudo`
+เมื่อติดตั้งเรียบร้อย ให้เปิด Orca แล้วเลือกโหมดที่ต้องการ แอปจะอ่านค่ากลับจาก daemon ก่อนแสดงคำว่า `Charge limits verified` ถ้า daemon หยุดทำงาน ตอบช้า หรือค่าที่อ่านกลับมาไม่ตรง หน้าจอจะแสดงว่า controller ยังไม่ผ่านการยืนยันและจะลองใหม่ในรอบถัดไป
 
-หลังตั้งค่า backend ให้เปิด Orca ใหม่แล้วเลือกโปรไฟล์ ตรวจแยกได้จาก:
+ตรวจสถานะด้วยตัวเองได้จาก:
 
 ```sh
-batt status
+batt status --json
 pmset -g batt
 ```
 
-ควรพิจารณาร่วมกันทั้ง upper/lower limit, สถานะอนุญาตชาร์จ, แหล่งจ่ายไฟ และ charge rate ไม่ใช้แค่คำว่า `Connected` หรือ `Holding` ใน UI เป็นหลักฐานเพียงอย่างเดียว
+คำว่า `Verified` หมายถึงช่วงชาร์จใน `batt` ตรงกับค่าที่เลือก ไม่ได้แปลว่ากระแสชาร์จหยุดในวินาทีนั้นทันที ควรดู Power, State และ charge rate ประกอบด้วย
 
-หากไม่มี `batt` แอปจะลองอ่าน `pmset -g battlimit` เป็น fallback เท่านั้น ไม่ใช้คำสั่งนี้เขียน charge limit และบาง macOS อาจไม่มีข้อมูลดังกล่าว
+### กลับไปใช้การชาร์จแบบปกติ
 
-### หยุดใช้ Charge Limit
-
-การปิดหน้าต่างยังเหลือ Menu Bar และการ Quit Orca **ไม่ได้หยุด daemon หรือคืนค่าของ batt ให้อัตโนมัติ** หากต้องการคืนการชาร์จปกติ ให้ Quit Orca ก่อน แล้วใช้:
+ปิด Battery Protection ในแอป หรือ Quit Orca แล้วรัน:
 
 ```sh
 batt disable
-batt status
+batt status --json
 ```
 
-การเปิด Simulation ก็ไม่ล้าง limit เดิมที่ daemon ถืออยู่ เพียงหยุดส่งคำสั่งฮาร์ดแวร์จากการจำลอง
+การ Quit แอปอย่างเดียวไม่ได้หยุด daemon และไม่ได้ล้างค่าที่ `batt` เก็บไว้ ส่วน Simulation Mode จะไม่เปลี่ยนค่าเดิมของฮาร์ดแวร์
 
-## โครงสร้างโปรเจกต์
+## แอปทำงานอย่างไร
+
+Orca รับเหตุการณ์จาก macOS ทันทีเมื่อแหล่งจ่ายไฟหรือสถานะแบตเปลี่ยน และตรวจซ้ำทุก 30 วินาทีเผื่อเหตุการณ์ตกหล่น รวมถึงตรวจใหม่หลังเครื่องตื่นจาก sleep ถ้าช่วงชาร์จไม่ตรงกับโหมดที่เลือก แอปจะส่งคำสั่งแก้แล้วอ่านค่ากลับอีกครั้ง จะแสดงว่า verified ก็ต่อเมื่อค่าตรงกันจริง
+
+คำสั่ง `batt` และ `pmset` ทำงานเบื้องหลัง จึงไม่ทำให้หน้าต่างแอปค้างระหว่างรอ daemon แต่ละคำสั่งมีเวลาให้ทำงานไม่เกิน 3 วินาที งานเก่าจะถูกยกเลิกเมื่อสลับโหมด และไม่อนุญาตให้มีคำสั่งควบคุมหลายชุดทำงานซ้อนกัน
+
+แอปไม่ได้บังคับ discharge ระหว่างช่วงล่างกับช่วงบน ถ้าเครื่องใช้ไฟจาก Adapter และไม่ได้ชาร์จ สถานะจะเป็น `Holding` จนกว่าจะต้องเริ่มชาร์จอีกครั้ง
+
+### อุณหภูมิและแบตต่ำ
+
+ค่าเริ่มต้นของ Cooling Pause คือ 38 C และ Critical Low คือ 15% เมื่อเครื่องร้อน Orca จะลดเพดานชาร์จชั่วคราวแล้วคืนค่าเดิมเมื่ออุณหภูมิลดลง หากแบตต่ำกว่า Critical Low ระบบจะให้ความสำคัญกับการชาร์จก่อน
+
+นี่เป็นเพียงเงื่อนไขเสริมในระดับแอป ไม่ใช่ระบบป้องกันความร้อน และไม่แทนที่การป้องกันที่ macOS หรือฮาร์ดแวร์มีอยู่แล้ว
+
+## ประวัติการทำงาน
+
+Activity เก็บเหตุการณ์สำคัญ เช่น การเปลี่ยนโหมด, controller ใช้งานไม่ได้, controller กลับมาทำงาน และการคืนค่า charge limit ไฟล์อยู่ที่:
 
 ```text
-OrcaBattGuard/
-├── Package.swift
-├── Packaging/Info.plist
-├── Scripts/package-app.sh
-├── Sources/
-│   ├── OrcaBatteryGuardianApp/OrcaBatteryGuardianApp.swift
-│   └── OrcaBatteryGuardian/
-│       ├── Models/BatteryModels.swift
-│       ├── Resources/orca-mascot.png
-│       ├── Services/
-│       │   ├── BatteryDataProvider.swift
-│       │   ├── ChargeController.swift
-│       │   ├── GuardianEngine.swift
-│       │   ├── GuardianStateMachine.swift
-│       │   ├── NotificationService.swift
-│       │   └── SettingsStore.swift
-│       └── UI/
-│           ├── ContentView.swift
-│           └── OrcaMascotView.swift
-├── Tests/OrcaBatteryGuardianTests/GuardianStateMachineTests.swift
-└── docs/images/
-    ├── overview.png
-    ├── menu-bar.png
-    ├── activity.png
-    └── settings.png
+~/Library/Application Support/OrcaBatteryGuardian/history.json
 ```
 
-`BatteryDataProviding` แยกข้อมูลจริงจากข้อมูลจำลอง, `GuardianStateMachine` ตัดสิน policy, `GuardianEngine` ประสานการอัปเดต และ `ChargeControlling` เป็นจุดแยกสำหรับ backend ปัจจุบันหรือ privileged helper ในอนาคต
+แอปเก็บไม่เกิน 500 รายการหรือ 512 KiB โดยลบรายการเก่าที่สุดก่อน ไฟล์นี้อยู่ในเครื่องเท่านั้นและไม่ได้ถูกส่งออกไปที่ไหน หากอ่านหรือเขียนไฟล์ไม่ได้ จะมีคำเตือนในหน้า Activity แทนการเขียนทับไฟล์เดิมเงียบ ๆ
 
-## Tests
+## สำหรับนักพัฒนา
+
+โค้ดแยกส่วนอ่านแบต, state machine, charge controller, process runner และ history store ออกจากกัน เพื่อให้ทดสอบ logic ได้โดยไม่ต้องส่งคำสั่งไปที่แบตจริง และยังสามารถเปลี่ยน backend เป็น privileged helper ของโปรเจกต์เองได้ในอนาคต
+
+```text
+Sources/OrcaBatteryGuardian/
+├── Models/
+├── Resources/
+├── Services/
+└── UI/
+```
+
+รันเทสต์ได้ทั้ง Debug และ Release:
 
 ```sh
 swift test
+swift test -c release
 ```
 
-ชุดทดสอบปัจจุบันมี 5 กรณี: upper threshold, lower threshold, critical-low priority, cooling pause และการแปลงค่าอุณหภูมิจาก AppleSmartBattery ชุดนี้ไม่ได้สั่งเปลี่ยน charge limit ของเครื่อง และยังไม่ครอบคลุมความล้มเหลวหรือ lifecycle ของ daemon
+ตอนนี้มี 64 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, power-source events, Simulation Mode และการบันทึกประวัติ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
 
-## ข้อจำกัดและงานถัดไป
+ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.4.0](docs/verification-0.4.0.md) และยังเปิดดู [รายงานรุ่น 0.3.0](docs/verification-0.3.0.md) ได้
 
-- **ยืนยันสถานะฮาร์ดแวร์:** cache ของคำสั่งอาจทำให้แสดงว่าพร้อมใช้งานหลังคำสั่งล้มเหลว หรือเมื่อมีการเปลี่ยนค่าจากภายนอก ยังต้องเพิ่มการตรวจผลจริงและ retry
-- **ความลื่นไหลของ UI:** คำสั่ง backend ยังรอผลบน main thread และไม่มี timeout จึงอาจทำให้ GUI ค้างหาก backend ไม่ตอบ
-- **ความตรงของข้อความสถานะ:** state machine ยังอาจแสดง `Holding` ทั้งที่กำลังชาร์จในช่วงกลาง หรือเมื่อเครื่องใช้แบตอยู่ ต้องแยกสถานะที่ต้องการออกจากสถานะที่วัดได้
-- **ประวัติถาวร:** Activity ยังไม่เขียนลงดิสก์และหายเมื่อ Quit ไม่มี export log หรือกราฟย้อนหลัง
-- **Sleep และ startup:** ยังต้องทดสอบ sleep/wake, restart, daemon recovery และ launch at login อย่างครอบคลุม ก่อนรับรองการทำงานแบบ unattended
-- **ความปลอดภัยของ policy:** ยังต้องปรับการจัดลำดับ low-battery/temperature, ตรวจค่าข้อมูลที่ไม่พร้อมใช้ และทดสอบการคืนค่าหลัง cooling pause
-- **การเผยแพร่:** ต้องเพิ่ม Release packaging, signing/notarization และกระบวนการติดตั้งก่อนแจกเป็นแอปพร้อมใช้
-- **Test coverage:** เพิ่มกรณี backend failure, timeout, cache invalidation, simulation isolation และ settings persistence
+## ข้อจำกัดตอนนี้
 
-การ build หรือผ่าน unit tests ไม่ได้หมายความว่าทดสอบความทนทานระยะยาวหรือฮาร์ดแวร์ทุกรุ่นแล้ว ใช้เป็นรุ่นทดลองและตรวจสถานะจาก backend ประกอบ
+- ยังไม่ได้ทดสอบกับ MacBook และ macOS ครบทุกรุ่น
+- ยังไม่ได้ทดสอบเปิดต่อเนื่องหลายวัน, restart และ sleep/wake หลายรอบ
+- ยังใช้ `batt` เป็น backend ภายนอก ไม่ได้รวมตัวควบคุมมากับแอป
+- ยังไม่มี automatic update, export history และกราฟย้อนหลัง
+- Cooling Pause เป็น policy ของแอป ไม่ใช่ระบบรับรองความปลอดภัยด้านอุณหภูมิ
+
+Orca ยังเป็น Beta ผมแนะนำให้เปิดดูสถานะเป็นระยะ โดยเฉพาะช่วงแรกที่ลองกับ Mac รุ่นใหม่ แอปช่วยจัดช่วงชาร์จได้ แต่ไม่ได้ซ่อมแบตที่เสื่อมแล้วและไม่สามารถรับประกันอายุแบตได้
 
 ## Contributors
 

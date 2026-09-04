@@ -1,9 +1,8 @@
 class OrcaBattery < Formula
   desc "Read-only CLI for Orca Battery Guardian"
   homepage "https://github.com/kridsadar357/OrcaBattGuard"
-  url "https://github.com/kridsadar357/OrcaBattGuard/archive/refs/tags/v0.7.0.tar.gz"
-  sha256 "becf4437cfb2569133361f309010623cc434a96f8bd3394f890a8dac2553b0a7"
-  revision 1
+  url "https://github.com/kridsadar357/OrcaBattGuard/archive/refs/tags/v0.8.0.tar.gz"
+  sha256 "89a842bb23adf831ef0752f011c23f2d77c4d5ca1ab93023c8f5a46261f188e4"
   head "https://github.com/kridsadar357/OrcaBattGuard.git", branch: "main"
 
   depends_on xcode: ["16.0", :build]

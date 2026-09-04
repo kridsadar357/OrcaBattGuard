@@ -8,9 +8,24 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 
 ตัวแอปเขียนด้วย Swift และ SwiftUI แสดงเปอร์เซ็นต์แบต แหล่งจ่ายไฟ อุณหภูมิ สุขภาพแบต และจำนวนรอบชาร์จเท่าที่ macOS อ่านได้ พร้อมตั้งช่วงชาร์จที่ต้องการจากหน้าเดียว
 
-**เวอร์ชัน 0.7.0 (Beta) · macOS 13 ขึ้นไป · รองรับ Apple Silicon เป็นหลัก**
+**เวอร์ชัน 0.8.0 (Beta) · macOS 13 ขึ้นไป · Universal 2 สำหรับ Apple Silicon และ Intel x86_64**
 
-> การจำกัดการชาร์จจริงใช้ [batt](https://github.com/charlie0129/batt) ซึ่งต้องติดตั้งแยก หากไม่มี `batt` แอปยังดูข้อมูลแบตได้ แต่จะไม่สามารถเปลี่ยน charge limit ให้เครื่อง
+> การจำกัดการชาร์จจริงบน Apple Silicon ใช้ [batt](https://github.com/charlie0129/batt) ซึ่งต้องติดตั้งแยก ส่วน Mac รุ่น Intel ทำงานใน Monitoring Mode เพราะ `batt` ไม่รองรับ Intel และ Orca ยังไม่มี Intel charge-control backend ที่ตรวจสอบสถานะกลับได้
+
+## ความเข้ากันได้
+
+| ความสามารถ | Apple Silicon | Intel x86_64 |
+|---|---:|---:|
+| Dashboard, Menu Bar และ notifications | รองรับ | รองรับ |
+| Battery %, power source, temperature, health และ cycles | รองรับเท่าที่ IOKit มีข้อมูล | รองรับเท่าที่ IOKit มีข้อมูล |
+| Activity history และ export CSV/JSON | รองรับ | รองรับ |
+| Battery Benchmark | รองรับ | รองรับ |
+| `orca` CLI | รองรับ | รองรับ |
+| Simulation Mode | รองรับ | รองรับ |
+| ควบคุมช่วงชาร์จผ่าน `batt` | รองรับเมื่อ daemon ยืนยัน capability | ไม่รองรับ |
+| Calibration ผ่าน `batt` | รองรับเมื่อ daemon ยืนยัน capability | ไม่รองรับ |
+
+Release build เป็น Universal 2 และมีทั้ง `arm64` กับ `x86_64` ใน app bundle เดียว บน Intel แอปจะไม่พยายามเรียก `batt` หรือเสนอ native charge limit แต่ยังเก็บข้อมูลและใช้เครื่องมือวิเคราะห์ได้ตามปกติ
 
 ## หน้าตาแอป
 
@@ -106,7 +121,7 @@ swift run OrcaBatteryGuardian
 
 ## เปิดใช้การควบคุมการชาร์จจริง
 
-โปรเจกต์นี้ไม่ได้เขียนค่า SMC โดยตรงและไม่มี privileged helper ของตัวเอง การควบคุม charge limit จึงอาศัย `batt` ที่ติดตั้งแยกต่างหาก
+ส่วนนี้ใช้กับ Apple Silicon เท่านั้น โปรเจกต์ไม่ได้เขียนค่า SMC โดยตรงและไม่มี privileged helper ของตัวเอง การควบคุม charge limit จึงอาศัย `batt` ที่ติดตั้งแยกต่างหาก
 
 ```sh
 brew install batt
@@ -305,13 +320,14 @@ swift test
 swift test -c release
 ```
 
-ตอนนี้มี 90 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, power-source events, Simulation Mode, การบันทึกและ export ประวัติ, Battery Benchmark, Calibration, update checker และระบบภาษา/ฟอนต์ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
+ตอนนี้มี 92 tests ครอบคลุม state machine, timeout, cancellation, daemon failure, ค่าที่ถูกเปลี่ยนจากภายนอก, Temporary Full Charge, Cooling Hysteresis, Diagnostics, architecture gating, power-source events, Simulation Mode, การบันทึกและ export ประวัติ, Battery Benchmark, Calibration, update checker และระบบภาษา/ฟอนต์ เทสต์ของ controller ใช้ข้อมูลจำลอง ไม่หยุด daemon และไม่เปลี่ยน charge limit ของเครื่อง
 
-ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.7.0](docs/verification-0.7.0.md) และยังเปิดดู [รายงานรุ่น 0.6.0](docs/verification-0.6.0.md) ได้
+ผลตรวจรุ่นปัจจุบันอยู่ใน [verification report 0.8.0](docs/verification-0.8.0.md) และยังเปิดดู [รายงานรุ่น 0.7.0](docs/verification-0.7.0.md) ได้
 
 ## ข้อจำกัดตอนนี้
 
 - ยังไม่ได้ทดสอบกับ MacBook และ macOS ครบทุกรุ่น
+- Intel slice ผ่าน cross-build และทดสอบผ่าน Rosetta แล้ว แต่ยังควรทดสอบบน Intel MacBook จริง
 - ยังไม่ได้ทดสอบเปิดต่อเนื่องหลายวัน, restart และ sleep/wake หลายรอบ
 - ยังใช้ `batt` เป็น backend ภายนอก ไม่ได้รวมตัวควบคุมมากับแอป
 - ระบบอัปเดตทำหน้าที่ตรวจเวอร์ชันและเปิดหน้า Release เท่านั้น ยังไม่ดาวน์โหลดหรือติดตั้งรุ่นใหม่ให้อัตโนมัติ

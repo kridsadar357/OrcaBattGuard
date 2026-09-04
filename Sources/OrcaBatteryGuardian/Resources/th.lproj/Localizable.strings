@@ -141,6 +141,7 @@
 "Simulation mode" = "โหมดจำลอง";
 "Test the dashboard without changing hardware" = "ทดสอบหน้าจอโดยไม่เปลี่ยนค่าฮาร์ดแวร์";
 "Charge controller" = "ตัวควบคุมการชาร์จ";
+"Monitoring" = "กำลังตรวจสอบ";
 "Simulation is isolated from hardware charge control." = "โหมดจำลองแยกจากการควบคุมฮาร์ดแวร์จริง";
 "Verified %@" = "ยืนยันเมื่อ %@";
 "macOS Charge Limit" = "การจำกัดการชาร์จของ macOS";
@@ -264,6 +265,10 @@
 "Quit Orca Battery Guardian" = "ออกจาก Orca Battery Guardian";
 
 /* Diagnostics */
+"Architecture" = "สถาปัตยกรรมเครื่อง";
+"Apple Silicon detected. Monitoring and verified batt charge control are available." = "ตรวจพบ Apple Silicon รองรับทั้งการอ่านข้อมูลและการควบคุมการชาร์จผ่าน batt ที่ตรวจสอบสถานะกลับได้";
+"Intel x86_64 detected. Monitoring, history, benchmark, and CLI are available; hardware charge control is monitor-only." = "ตรวจพบ Intel x86_64 สามารถดูข้อมูล ประวัติ Benchmark และใช้ CLI ได้ ส่วนการควบคุมการชาร์จทำงานในโหมดตรวจสอบอย่างเดียว";
+"Unknown Mac architecture. Hardware charge control is disabled." = "ไม่ทราบสถาปัตยกรรมของ Mac จึงปิดการควบคุมการชาร์จจริง";
 "Battery data" = "ข้อมูลแบตเตอรี่";
 "Battery telemetry is available." = "อ่านข้อมูลแบตเตอรี่ได้ตามปกติ";
 "Reliable battery telemetry is unavailable." = "ยังอ่านข้อมูลแบตเตอรี่ที่เชื่อถือได้ไม่ได้";
@@ -287,12 +292,15 @@
 "The daemon response could not be verified." = "ไม่สามารถยืนยันคำตอบจากบริการได้";
 "Available for limits from 80% to 100%. Avoid running two charge controllers at once." = "รองรับการจำกัดตั้งแต่ 80% ถึง 100% และไม่ควรใช้ตัวควบคุมสองตัวพร้อมกัน";
 "Not available on this macOS version; Orca can use batt instead." = "macOS รุ่นนี้ยังไม่รองรับ โดย Orca สามารถใช้ batt แทนได้";
+"Apple's native charge limit is unavailable on Intel Macs." = "ระบบจำกัดการชาร์จของ Apple ไม่รองรับ Mac รุ่น Intel";
+"Intel Macs run in monitoring mode because the verified batt backend supports Apple Silicon only." = "Mac รุ่น Intel ทำงานในโหมดตรวจสอบ เนื่องจาก batt ที่ Orca ใช้และตรวจสอบสถานะกลับได้นั้นรองรับเฉพาะ Apple Silicon";
 
 /* Charge controller details */
 "Simulation only. Existing hardware limits are unchanged." = "เป็นเพียงโหมดจำลอง ช่วงการชาร์จจริงยังคงเดิม";
 "Monitor Only" = "ตรวจสอบอย่างเดียว";
 "No batt backend found. Monitoring only. System battery information is available." = "ไม่พบ batt ขณะนี้ตรวจสอบสถานะได้อย่างเดียว แต่ยังอ่านข้อมูลแบตเตอรี่ของระบบได้";
 "No batt backend found. Monitoring only. System charge-limit readout is unavailable." = "ไม่พบ batt ขณะนี้ตรวจสอบสถานะได้อย่างเดียว และไม่สามารถอ่านค่าจำกัดการชาร์จของระบบได้";
+"Intel monitoring mode. Battery data, history, benchmark, and CLI remain available; hardware charge control is disabled." = "โหมดตรวจสอบสำหรับ Intel ยังอ่านข้อมูลแบตเตอรี่ เก็บประวัติ ทำ Benchmark และใช้ CLI ได้ แต่ปิดการควบคุมการชาร์จจริง";
 "A controller update is already in progress." = "กำลังอัปเดตตัวควบคุมการชาร์จอยู่";
 "Controller update cancelled." = "ยกเลิกการอัปเดตตัวควบคุมแล้ว";
 "Battery data is unavailable. Hardware settings were not changed." = "ไม่มีข้อมูลแบตเตอรี่ จึงไม่ได้เปลี่ยนค่าฮาร์ดแวร์";

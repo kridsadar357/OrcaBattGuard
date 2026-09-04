@@ -15,27 +15,38 @@ public actor SystemDiagnosticsService: DiagnosticsProviding {
     private let battPath: String?
     private let operatingSystemVersion: OperatingSystemVersion
     private let applicationPath: String
+    private let architecture: MacArchitecture
 
     public init(
         runner: any CommandRunning = ProcessCommandRunner(),
         battPath: String? = SystemChargeController.installedBattPath,
         operatingSystemVersion: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion,
-        applicationPath: String = Bundle.main.bundlePath
+        applicationPath: String = Bundle.main.bundlePath,
+        architecture: MacArchitecture = .current
     ) {
         self.runner = runner
         self.battPath = battPath
         self.operatingSystemVersion = operatingSystemVersion
         self.applicationPath = applicationPath
+        self.architecture = architecture
     }
 
     public func run(snapshot: BatterySnapshot, language: AppLanguage) async -> [DiagnosticCheck] {
         func text(_ key: String, _ arguments: CVarArg...) -> String {
             L10n.string(key, language: language, arguments: arguments)
         }
-        var checks = [batteryCheck(snapshot, language: language), nativeLimitCheck(language: language), installationCheck(language: language)]
+        var checks = [
+            batteryCheck(snapshot, language: language),
+            architectureCheck(language: language),
+            nativeLimitCheck(language: language),
+            installationCheck(language: language)
+        ]
         guard let battPath else {
             checks.append(DiagnosticCheck(id: "batt", title: text("Charge controller"),
-                detail: text("batt was not found. Orca is monitoring only."), level: .failed))
+                detail: architecture == .intel
+                    ? text("Intel monitoring mode. Battery data, history, benchmark, and CLI remain available; hardware charge control is disabled.")
+                    : text("batt was not found. Orca is monitoring only."),
+                level: architecture == .intel ? .information : .failed))
             return checks
         }
 
@@ -89,12 +100,31 @@ public actor SystemDiagnosticsService: DiagnosticsProviding {
     }
 
     private func nativeLimitCheck(language: AppLanguage) -> DiagnosticCheck {
-        let available = NativeChargeLimitSupport.isAvailable(on: operatingSystemVersion)
+        let available = NativeChargeLimitSupport.isAvailable(on: operatingSystemVersion, architecture: architecture)
         return DiagnosticCheck(id: "native-limit", title: L10n.string("macOS Charge Limit", language: language),
             detail: available
                 ? L10n.string("Available for limits from 80% to 100%. Avoid running two charge controllers at once.", language: language)
-                : L10n.string("Not available on this macOS version; Orca can use batt instead.", language: language),
+                : architecture == .intel
+                    ? L10n.string("Apple's native charge limit is unavailable on Intel Macs.", language: language)
+                    : L10n.string("Not available on this macOS version; Orca can use batt instead.", language: language),
             level: available ? .information : .passed)
+    }
+
+    private func architectureCheck(language: AppLanguage) -> DiagnosticCheck {
+        let detail: String
+        let level: DiagnosticLevel
+        switch architecture {
+        case .appleSilicon:
+            detail = L10n.string("Apple Silicon detected. Monitoring and verified batt charge control are available.", language: language)
+            level = .passed
+        case .intel:
+            detail = L10n.string("Intel x86_64 detected. Monitoring, history, benchmark, and CLI are available; hardware charge control is monitor-only.", language: language)
+            level = .information
+        case .unknown:
+            detail = L10n.string("Unknown Mac architecture. Hardware charge control is disabled.", language: language)
+            level = .warning
+        }
+        return DiagnosticCheck(id: "architecture", title: L10n.string("Architecture", language: language), detail: detail, level: level)
     }
 
     private func installationCheck(language: AppLanguage) -> DiagnosticCheck {

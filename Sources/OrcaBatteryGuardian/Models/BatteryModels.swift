@@ -269,13 +269,36 @@ public struct DiagnosticCheck: Identifiable, Equatable, Codable, Sendable {
     }
 }
 
+public enum MacArchitecture: String, Sendable {
+    case appleSilicon = "Apple Silicon"
+    case intel = "Intel x86_64"
+    case unknown = "Unknown"
+
+    public static var current: MacArchitecture {
+        #if arch(arm64)
+        .appleSilicon
+        #elseif arch(x86_64)
+        .intel
+        #else
+        .unknown
+        #endif
+    }
+
+    public var supportsBattChargeControl: Bool { self == .appleSilicon }
+}
+
 public enum NativeChargeLimitSupport {
     public static var isAvailable: Bool {
-        isAvailable(on: ProcessInfo.processInfo.operatingSystemVersion)
+        isAvailable(on: ProcessInfo.processInfo.operatingSystemVersion, architecture: .current)
     }
 
     public static func isAvailable(on version: OperatingSystemVersion) -> Bool {
-        version.majorVersion > 26 ||
+        isAvailable(on: version, architecture: .appleSilicon)
+    }
+
+    public static func isAvailable(on version: OperatingSystemVersion, architecture: MacArchitecture) -> Bool {
+        guard architecture == .appleSilicon else { return false }
+        return version.majorVersion > 26 ||
             (version.majorVersion == 26 && version.minorVersion >= 4)
     }
 }

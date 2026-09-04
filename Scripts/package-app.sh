@@ -6,10 +6,12 @@ CONFIGURATION=release
 IDENTITY="${SIGNING_IDENTITY:-}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 INSTALL=false
+UNIVERSAL=true
 
 usage() {
-    print 'Usage: package-app.sh [--identity NAME_OR_HASH] [--notary-profile PROFILE] [--install] [--debug]'
-    print 'Defaults to Release, ad-hoc signed for local use. Distribution requires Developer ID and notarization.'
+    print 'Usage: package-app.sh [--identity NAME_OR_HASH] [--notary-profile PROFILE] [--install] [--debug] [--native]'
+    print 'Release builds are Universal 2 by default. Use --native for the current architecture only.'
+    print 'Defaults to ad-hoc signing for local use. Distribution requires Developer ID and notarization.'
 }
 
 while (( $# )); do
@@ -19,7 +21,8 @@ while (( $# )); do
             if [[ "$1" == --identity ]]; then IDENTITY="$2"; else NOTARY_PROFILE="$2"; fi
             shift 2 ;;
         --install) INSTALL=true; shift ;;
-        --debug) CONFIGURATION=debug; shift ;;
+        --debug) CONFIGURATION=debug; UNIVERSAL=false; shift ;;
+        --native) UNIVERSAL=false; shift ;;
         --help|-h) usage; exit 0 ;;
         *) usage; exit 2 ;;
     esac
@@ -40,14 +43,29 @@ MASCOT_PATH="$PROJECT_DIR/Sources/OrcaBatteryGuardian/Resources/orca-mascot.png"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 cd "$PROJECT_DIR"
-swift build -c "$CONFIGURATION"
-BIN_DIR="$(swift build -c "$CONFIGURATION" --show-bin-path)"
+if $UNIVERSAL; then
+    swift build -c release --triple arm64-apple-macosx13.0
+    swift build -c release --triple x86_64-apple-macosx13.0
+    ARM_BIN_DIR="$(swift build -c release --triple arm64-apple-macosx13.0 --show-bin-path)"
+    INTEL_BIN_DIR="$(swift build -c release --triple x86_64-apple-macosx13.0 --show-bin-path)"
+    BIN_DIR="$ARM_BIN_DIR"
+else
+    swift build -c "$CONFIGURATION"
+    BIN_DIR="$(swift build -c "$CONFIGURATION" --show-bin-path)"
+fi
 RESOURCE_BUNDLE="$BIN_DIR/OrcaBatteryGuardian_OrcaBatteryGuardian.bundle"
 [[ -d "$RESOURCE_BUNDLE" ]] || { print -u2 'Required resource bundle is missing.'; exit 1; }
 
 mkdir -p "$CONTENTS_DIR/MacOS" "$RESOURCES_DIR" "$ICONSET_DIR" "$PROJECT_DIR/build"
-cp "$BIN_DIR/OrcaBatteryGuardian" "$CONTENTS_DIR/MacOS/OrcaBatteryGuardian"
-cp "$BIN_DIR/orca-battery" "$CONTENTS_DIR/MacOS/orca-battery"
+if $UNIVERSAL; then
+    lipo -create "$ARM_BIN_DIR/OrcaBatteryGuardian" "$INTEL_BIN_DIR/OrcaBatteryGuardian" \
+        -output "$CONTENTS_DIR/MacOS/OrcaBatteryGuardian"
+    lipo -create "$ARM_BIN_DIR/orca-battery" "$INTEL_BIN_DIR/orca-battery" \
+        -output "$CONTENTS_DIR/MacOS/orca-battery"
+else
+    cp "$BIN_DIR/OrcaBatteryGuardian" "$CONTENTS_DIR/MacOS/OrcaBatteryGuardian"
+    cp "$BIN_DIR/orca-battery" "$CONTENTS_DIR/MacOS/orca-battery"
+fi
 chmod 755 "$CONTENTS_DIR/MacOS/orca-battery"
 cp "$PROJECT_DIR/Packaging/Info.plist" "$CONTENTS_DIR/Info.plist"
 ditto "$RESOURCE_BUNDLE" "$RESOURCES_DIR/OrcaBatteryGuardian_OrcaBatteryGuardian.bundle"

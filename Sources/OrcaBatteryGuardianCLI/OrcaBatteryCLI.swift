@@ -32,7 +32,7 @@ struct OrcaBatteryCLI {
         case "update":
             await printUpdateStatus()
         case "version":
-            print("\(commandName) 0.7.0")
+            print("\(commandName) 0.8.0")
         default:
             printHelp()
         }
@@ -109,7 +109,7 @@ struct OrcaBatteryCLI {
     }
 
     private static func printUpdateStatus() async {
-        let status = await GitHubUpdateService().check(currentVersion: "0.7.0")
+        let status = await GitHubUpdateService().check(currentVersion: "0.8.0")
         switch status.state {
         case .updateAvailable: print("Update available: \(status.latestVersion ?? "unknown")\n\(status.releaseURL?.absoluteString ?? "")")
         case .upToDate: print("Orca Battery Guardian is up to date.")

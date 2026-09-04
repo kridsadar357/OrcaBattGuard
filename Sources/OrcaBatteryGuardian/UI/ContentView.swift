@@ -181,13 +181,14 @@ public struct ContentView: View {
             Spacer(minLength: 12)
 
             VStack(alignment: .trailing, spacing: 6) {
-                Text(t("Protection"))
+                Text(t(protectionControlsEnabled ? "Protection" : "Monitoring"))
                     .font(language.uiFont(.caption))
                     .foregroundStyle(.secondary)
                 Toggle(t("Battery protection"), isOn: protectionBinding)
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .tint(GuardianPalette.accent)
+                    .disabled(!protectionControlsEnabled)
                     .help(t("Turn battery protection on or off"))
             }
         }
@@ -320,7 +321,7 @@ public struct ContentView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-                .disabled(!settings.protectionEnabled)
+                .disabled(!settings.protectionEnabled || !protectionControlsEnabled)
                 .help(settings.protectionEnabled ? t("Temporarily allow charging to 100%") : t("Turn on Battery Protection first"))
             }
         }
@@ -670,12 +671,22 @@ public struct ContentView: View {
                         Spacer()
                     }
                     if SystemChargeController.installedBattPath == nil {
-                        HStack {
-                            Button(action: openBattGuide) {
-                                Label(t("Installation Guide"), systemImage: "safari")
+                        if MacArchitecture.current == .intel {
+                            Label {
+                                Text(t("Intel Macs run in monitoring mode because the verified batt backend supports Apple Silicon only."))
+                                    .font(language.uiFont(.caption2))
+                                    .foregroundStyle(.secondary)
+                            } icon: {
+                                Image(systemName: "info.circle")
                             }
-                            Button(action: copyBattInstallCommand) {
-                                Label(t("Copy Install Command"), systemImage: "doc.on.doc")
+                        } else {
+                            HStack {
+                                Button(action: openBattGuide) {
+                                    Label(t("Installation Guide"), systemImage: "safari")
+                                }
+                                Button(action: copyBattInstallCommand) {
+                                    Label(t("Copy Install Command"), systemImage: "doc.on.doc")
+                                }
                             }
                         }
                     }
@@ -892,6 +903,10 @@ public struct ContentView: View {
             get: { settings.protectionEnabled },
             set: { engine.setProtectionEnabled($0) }
         )
+    }
+
+    private var protectionControlsEnabled: Bool {
+        settings.simulationMode || MacArchitecture.current != .intel
     }
 
     private var simulationBinding: Binding<Bool> {
@@ -1221,6 +1236,7 @@ public struct MenuBarContentView: View {
             Toggle(t("Battery protection"), isOn: protectionBinding)
                 .toggleStyle(.switch)
                 .tint(GuardianPalette.accent)
+                .disabled(!protectionControlsEnabled)
 
             if let until = settings.chargeToFullUntil, settings.isChargeToFullActive {
                 HStack {
@@ -1289,6 +1305,10 @@ public struct MenuBarContentView: View {
             get: { settings.protectionEnabled },
             set: { engine.setProtectionEnabled($0) }
         )
+    }
+
+    private var protectionControlsEnabled: Bool {
+        settings.simulationMode || MacArchitecture.current != .intel
     }
 
     private var temperatureText: String {

@@ -59,7 +59,7 @@ public final class GuardianEngine: ObservableObject {
         benchmarkStore: any BatteryBenchmarkStoring = BatteryBenchmarkStore(),
         maintenanceService: any MaintenanceServicing = BattMaintenanceService(),
         updateService: any AppUpdateChecking = GitHubUpdateService(),
-        currentVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.7.0",
+        currentVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.8.0",
         coolingPolicy: CoolingPolicy = CoolingPolicy(),
         nativeChargeLimitAvailable: Bool = NativeChargeLimitSupport.isAvailable
     ) {

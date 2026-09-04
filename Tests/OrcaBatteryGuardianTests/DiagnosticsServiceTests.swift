@@ -29,6 +29,22 @@ import Testing
     #expect(await runner.calls.isEmpty)
 }
 
+@Test func intelDiagnosticsReportsSupportedMonitoringWithoutBackendFailure() async {
+    let runner = ScriptedRunner([])
+    let checks = await SystemDiagnosticsService(
+        runner: runner,
+        battPath: nil,
+        operatingSystemVersion: OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0),
+        applicationPath: "/Applications/OrcaBatteryGuardian.app",
+        architecture: .intel
+    ).run(snapshot: sampleBattery())
+
+    #expect(checks.first(where: { $0.id == "architecture" })?.level == .information)
+    #expect(checks.first(where: { $0.id == "native-limit" })?.level == .passed)
+    #expect(checks.first(where: { $0.id == "batt" })?.level == .information)
+    #expect(await runner.calls.isEmpty)
+}
+
 @Test(arguments: [
     CommandResult(exitCode: 124, timedOut: true),
     CommandResult(exitCode: 0, output: "invalid json"),

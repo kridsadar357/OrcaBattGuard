@@ -38,3 +38,8 @@ import Testing
 ]) func nativeChargeLimitAvailabilityHasCorrectBoundary(input: (OperatingSystemVersion, Bool)) {
     #expect(NativeChargeLimitSupport.isAvailable(on: input.0) == input.1)
 }
+
+@Test func nativeChargeLimitIsNotAdvertisedOnIntel() {
+    let futureVersion = OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0)
+    #expect(!NativeChargeLimitSupport.isAvailable(on: futureVersion, architecture: .intel))
+}

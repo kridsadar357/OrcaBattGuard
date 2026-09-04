@@ -26,20 +26,24 @@ public actor SystemChargeController: ChargeControlling {
     private let runner: any CommandRunning
     private let battPath: String?
     private let commandTimeout: TimeInterval
+    private let architecture: MacArchitecture
     private var isApplying = false
 
     public init(
         runner: any CommandRunning = ProcessCommandRunner(),
         battPath: String? = SystemChargeController.installedBattPath,
-        commandTimeout: TimeInterval = 3
+        commandTimeout: TimeInterval = 3,
+        architecture: MacArchitecture = .current
     ) {
         self.runner = runner
         self.battPath = battPath
         self.commandTimeout = commandTimeout
+        self.architecture = architecture
     }
 
     public static var installedBattPath: String? {
-        ["/opt/homebrew/bin/batt", "/usr/local/bin/batt", "/usr/bin/batt"]
+        guard MacArchitecture.current.supportsBattChargeControl else { return nil }
+        return ["/opt/homebrew/bin/batt", "/usr/local/bin/batt", "/usr/bin/batt"]
             .first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
@@ -57,10 +61,13 @@ public actor SystemChargeController: ChargeControlling {
         }
         guard let battPath else {
             let readout = await runner.run(executable: "/usr/bin/pmset", arguments: ["-g", "battlimit"], timeout: commandTimeout)
+            let message = architecture == .intel
+                ? "Intel monitoring mode. Battery data, history, benchmark, and CLI remain available; hardware charge control is disabled."
+                : "No batt backend found. Monitoring only. " + (readout.succeeded ? "System battery information is available." : "System charge-limit readout is unavailable.")
             return ChargeControlResult(
                 backendName: "Monitor Only", isHardwareControlAvailable: false,
                 didAttemptHardwareChange: false,
-                message: "No batt backend found. Monitoring only. " + (readout.succeeded ? "System battery information is available." : "System charge-limit readout is unavailable.")
+                message: message
             )
         }
 

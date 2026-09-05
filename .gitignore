@@ -7,6 +7,9 @@ xcuserdata/
 *.xcuserstate
 *.dSYM/
 *.log
+**/bin/
+**/obj/
+Windows/artifacts/
 .env
 .env.*
 !.env.example

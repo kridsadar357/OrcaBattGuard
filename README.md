@@ -8,6 +8,8 @@ Orca Battery Guardian เป็นแอปเล็ก ๆ บน Menu Bar ส�
 
 ตัวแอปเขียนด้วย Swift และ SwiftUI แสดงเปอร์เซ็นต์แบต แหล่งจ่ายไฟ อุณหภูมิ สุขภาพแบต และจำนวนรอบชาร์จเท่าที่ macOS อ่านได้ พร้อมตั้งช่วงชาร์จที่ต้องการจากหน้าเดียว
 
+> **Windows beta:** โค้ดแอป Windows, Dell charge-control backend และวิธี build อยู่ใน [Windows/README.md](Windows/README.md) รุ่นแรกอ่านข้อมูลผ่าน Win32/WMI และควบคุมช่วงชาร์จจริงบน Dell รุ่นที่รองรับ Dell Command Configure
+
 **เวอร์ชัน 0.9.0 (Beta) · macOS 13 ขึ้นไป · Universal 2 สำหรับ Apple Silicon และ Intel x86_64**
 
 > Apple Silicon ใช้ [batt](https://github.com/charlie0129/batt) ส่วน Intel บน macOS 13/14 ใช้ [bclm](https://github.com/zackelia/bclm) ผ่าน helper ที่ติดตั้งแยก ทั้งสองแบบอ่านค่ากลับก่อนแสดงว่า controller ทำงานสำเร็จ

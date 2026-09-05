@@ -1,0 +1,32 @@
+name: Windows
+
+on:
+  push:
+    paths:
+      - "Windows/**"
+      - ".github/workflows/windows.yml"
+  pull_request:
+    paths:
+      - "Windows/**"
+      - ".github/workflows/windows.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: Windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Test
+        run: dotnet test OrcaBattGuard.Windows.sln -c Release
+      - name: Publish
+        run: dotnet publish src/OrcaBattGuard.Windows/OrcaBattGuard.Windows.csproj -c Release -r win-x64 --self-contained true -o artifacts/win-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OrcaBattGuard-Windows-x64
+          path: Windows/artifacts/win-x64
+          if-no-files-found: error
